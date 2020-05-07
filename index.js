@@ -3,6 +3,8 @@ const fs = require('fs');
 const Excel = require('exceljs');
 const addressParser = require('parse-address');
 const ExcelWriter = require('./ExcelWriter.js');
+const DateParser = require('./DateParser.js');
+const InfoParser = require('./InfoParser.js');
 
 const targetAddress = 'https://apps.franklincountyauditor.com/dailyconveyance';
 
@@ -52,132 +54,11 @@ async function getInfoFromTableByRowHeader(table, header, delimiter){
 	return info;
 }
 
-function parseAddress(addressString){
-	
-	const streetjson = fs.readFileSync('streetabbreviations.json');
-	const statejson = fs.readFileSync('stateabbreviations.json');
-	const suffixjson = fs.readFileSync('suffabbreviations.json');
-	const TYPES = JSON.parse(streetjson);
-	const STATES = JSON.parse(statejson);
-	const PRE_SUF = JSON.parse(suffixjson);
 
-
-	let parsed = addressParser.parseLocation(addressString);	
-	console.log(addressString);
-	console.log(parsed);
-	let editedAddress = {};
-	editedAddress.street = '';
-	if(num = parsed.number) editedAddress.street += num;
-	if(pre = parsed.prefix) editedAddress.street += ' ' + ((pre.toUpperCase() in PRE_SUF) ? PRE_SUF[pre.toUpperCase()].toUpperCase() : pre.toUpperCase());
-	if(st = parsed.street) editedAddress.street += ' ' + st;
-	if(tp = parsed.type) editedAddress.street += ' ' + ((tp.toUpperCase() in TYPES) ? TYPES[tp.toUpperCase()].toUpperCase() : tp.toUpperCase());
-	if(suf = parsed.suffix) editedAddress.street += ' ' + ((suf.toUpperCase() in PRE_SUF) ? PRE_SUF[suf.toUpperCase()].toUpperCase() : suf.toUpperCase());
-
-	if(parsed.sec_unit_type) editedAddress.street += ' ' + parsed.sec_unit_type;
-	if(parsed.sec_unit_num) editedAddress.street += ' ' + parsed.sec_unit_num;
-
-	if(city = parsed.city) editedAddress.city = city.toUpperCase();
-	if(state = parsed.state) editedAddress.state = (state.toUpperCase() in STATES) ? STATES[state.toUpperCase()].toUpperCase() : state.toUpperCase();
-	if(zip = parsed.zip) editedAddress.zip = zip;
-	
-	console.log(editedAddress);
-	return editedAddress;
-
-}
-
-function trimArray(array){
-	let newArray = [];
-	for(let i=0; i < array.length; i++){
-		let e = array[i].trim();
-		if(e !== '') newArray.push(e);
-	}
-	return newArray;
-}
-function parseAddress2(addressString){
-	
-	try{
-	addressString = addressString.trim();
-//	console.log(addressString);
-	
-	const streetjson = fs.readFileSync('streetabbreviations.json');
-	const statejson = fs.readFileSync('stateabbreviations.json');
-	const suffixjson = fs.readFileSync('suffabbreviations.json');
-	const TYPES = JSON.parse(streetjson);
-	const STATES = JSON.parse(statejson);
-	const PRE_SUF = JSON.parse(suffixjson);
-
-	let editedAddress = {};
-
-	let addressLines = trimArray(addressString.split(','));
-
-	let regionLine = addressLines.pop();
-	let regionLineSplit = trimArray(regionLine.split(' '));
-
-	editedAddress.zip = regionLineSplit.pop();
-	let stateAbbr = regionLineSplit.pop();
-	if(stateAbbr in STATES){
-		editedAddress.state = STATES[stateAbbr].toUpperCase();	
-	} else {
-		editedAddress.state = stateAbbr.toUpperCase();
-	}
-	
-	editedAddress.city = regionLineSplit.join(' ');
-
-	let streetLine = ''
-	for(let i = 0; i < addressLines.length; i++){
-		let split = addressLines[i].split(' ');
-		// console.log(split);
-		split.forEach(token => {
-			token = token.toUpperCase();
-			if(token in TYPES){
-				streetLine += TYPES[token] +' ';
-			} else if(token in PRE_SUF){
-				streetLine += PRE_SUF[token].toUpperCase() + ' ';
-			} else {
-				streetLine += token + ' ';
-			}
-		})
-	}
-	editedAddress.street = streetLine;
-		
-//	console.log(editedAddress);
-	return editedAddress;
-	}
-	catch(e){
-		console.log('Error on string: ' + addressString);
-		return {
-			street: addressString,
-			city: 'ERR',
-			zip: 'ERR',
-			state: 'ERR',
-		};
-	}
-
-}
-
-function parseOwnerNames(ownerString){
-	const FILTER_WORDS = ['COMPANY', ' LLC', ' BANK', ' TRUST', ' INC'];
-
-	// console.log(ownerString);
-	
-	// console.log(firstOwner);
-	try{
-		let ownerNames = trimArray(ownerString.split(','));
-		// console.log(ownerNames);
-		let firstOwner = ownerNames[0];
-		if(FILTER_WORDS.some(word => firstOwner.includes(word))) return firstOwner;
-		let firstOwnerSplit = firstOwner.split(' ');
-		firstOwnerSplit.push(firstOwnerSplit.shift())
-		return firstOwnerSplit.join(' ');
-	}
-	catch(e){
-		return ownerString;
-	}
-}
 async function processHyperLinksForDate(page, hyperlinks, conveyanceDate){
 	let processedInformation = [];
-
-	for(let i = 0; i < 1; i++){
+	let infoParser = new InfoParser();
+	for(let i = 0; i < 5; i++){
 		let pageLink = hyperlinks[i];
 		console.log(pageLink);
 		try{
@@ -193,11 +74,11 @@ async function processHyperLinksForDate(page, hyperlinks, conveyanceDate){
 
 		const ownerTableData = await getTableDataBySelector(page, 'id','Owner',false);
 		let ownerNames = await getInfoFromTableByRowHeader(ownerTableData, 'Owner', ',');
-		ownerNames = parseOwnerNames(ownerNames);
+		ownerNames = infoParser.parseOwnerNames(ownerNames);
 
 		// console.log(ownerNames);
 		let ownerAddress = await getInfoFromTableByRowHeader(ownerTableData, 'Owner Address',',');
-		ownerAddress = parseAddress2(ownerAddress);
+		ownerAddress = infoParser.parseAddress2(ownerAddress);
 
 		const transferTableData = await getTableDataBySelector(page, 'id','Transfer',false);
 		let transferAmount = await getInfoFromTableByRowHeader(transferTableData,'Transfer Price','');
@@ -277,30 +158,12 @@ async function getParcelIDHyperlinksForDate(page, conveyanceDate){
 	return allHyperlinks;
 }
 
-async function convertDateRangeToList(start, end){
-	function formatDate(date){
-		day = date.getDate();
-		month = date.getMonth() + 1;
-		year = date.getFullYear();
 
-		return (month < 9 ? '0' : '') + month + '/' + (day < 9 ? '0' : '') + day + '/' + year;
-	}
-	if(start === 'today'){
-		return [formatDate(Date.now())];
-	}
-	if(start.getTime() > end.getTime()){
-		return -1;
-	}
-	let dateList = [];
-	for (var d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-    	dateList.push(formatDate(new Date(d)));
-	}
-	return dateList;
-}
 
 async function run(start, end, filepath){
 
 	let excel = new ExcelWriter();
+	let dateParser = new DateParser();
 	console.log(excel);
 	if(filepath === undefined) filepath = targetFilepath;
 	console.log('Filepath: '+filepath);
@@ -311,7 +174,7 @@ async function run(start, end, filepath){
 	start.setDate(start.getDate() + 1);
 	end = new Date(Date.parse(end));
 	end.setDate(end.getDate() + 1);
-	let dateList = await convertDateRangeToList(new Date(Date.parse(start)), new Date(Date.parse(end)));
+	let dateList = dateParser.convertDateRangeToList(new Date(Date.parse(start)), new Date(Date.parse(end)));
 	let finalpath;
 	console.log(dateList);
 	// If dateList === -1 throw error
