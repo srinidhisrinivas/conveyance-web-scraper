@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<script src='https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js' type='text/javascript'></script>
+		<script>
+			  function getfolder(e) {
+			    var files = e.target.files;
+			    var path = files[0].webkitRelativePath;
+			    var Folder = path.split("/");
+			    alert(Folder[0]);
+			  }
+			  function compileInformation(){
+			  	var startDate = document.getElementById('startDate').value;
+			  	var endDate = document.getElementById('endDate').value;
+			  	var directory = document.getElementById('directory').value;
+			  	var startDate = 'test';
+			  	var endDate = 'test';
+			  	var directory = 'test';
+			  	return '/submit/start=' + startDate+'/end='+endDate+'/dir='+directory; 
+			  }
+			  function postData(){
+			  	var startDate = document.getElementById('startDate').value;
+			  	var endDate = document.getElementById('endDate').value;
+			  	// var directory = document.getElementById('directory').value;
+			  	$.post({
+			  		url: '/submit',
+			  		traditional: true,
+			  		contentType: 'application/json',
+			  		data: JSON.stringify({
+			  			start: startDate,
+			  			end: endDate// ,
+			  			// dir: directory
+			  		}),
+			  		dataType: 'json',
+			  		success: function(response){
+				  		console.log(response);
+				  	}
+				  });
+			  }
+		</script>
+
+		<title> Scraper </title>
+	</head>
+	<body>
+		<p>Start Date: </p><input type=date id='startDate'><br>
+		<p>End Date: </p> <input type=date id = 'endDate'><br>
+		<!-- <p> Destination: </p> <input type=file id='directory' onchange="getFolder(event)" webkitdirectory mozdirectory msdirectory odirectory directory multiple /> -->
+		<button onclick="postData()">Run Test</button>
+	</body>
+</html>

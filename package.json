@@ -1,0 +1,26 @@
+{
+  "name": "AuditorScraper",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^0.19.2",
+    "body-parser": "^1.19.0",
+    "casper": "^0.1.1",
+    "casperjs": "^1.1.4",
+    "cheerio": "^1.0.0-rc.3",
+    "exceljs": "^3.9.0",
+    "express": "^4.17.1",
+    "parse-address": "^1.1.2",
+    "phantom": "^6.3.0",
+    "phantomjs": "^2.1.7",
+    "pug": "^2.0.4",
+    "puppeteer": "^3.0.2"
+  }
+}
