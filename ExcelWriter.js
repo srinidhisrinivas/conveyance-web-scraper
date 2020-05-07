@@ -24,6 +24,8 @@ let ExcelWriter = function(){
 				{header: 'ZIP', key: 'zip', style:{font: {name:'Arial', size: 12}}},
 				{header: 'Transfer Value', key: 'transfer', style:{font: {name:'Arial', size: 12}}},
 				{header: 'Market Value', key: 'value', style:{font: {name:'Arial', size: 12}}},
+				{header: 'Code', key: 'code', style:{font: {name:'Arial', size: 12}}}
+
 			];
 			
 		} else {
@@ -44,7 +46,14 @@ let ExcelWriter = function(){
 				value: conveyance.value
 			});
 			*/
-			let dataArray = [conveyance.owner, conveyance.street, conveyance.city, conveyance.state, conveyance.zip, conveyance.transfer, conveyance.value];
+			let dataArray = [conveyance.owner,
+							conveyance.street,
+							conveyance.city,
+							conveyance.state,
+							conveyance.zip,
+							conveyance.transfer,
+							conveyance.value,
+							conveyance.conveyanceCode];
 			sheet.addRow(dataArray);
 		}
 
