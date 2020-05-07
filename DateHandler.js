@@ -1,4 +1,8 @@
-let DateParser = function(){
+let DateHandler = function(){
+	this.incrementDate = function(date){
+		date.setDate(date.getDate() + 1);
+		return date
+	}
 	this.convertDateRangeToList = (start, end) => {
 		function formatDate(date){
 			day = date.getDate();
@@ -21,4 +25,4 @@ let DateParser = function(){
 	}
 }
 
-module.exports = DateParser;
+module.exports = DateHandler;

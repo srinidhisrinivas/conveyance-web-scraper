@@ -1,6 +1,6 @@
 const fs = require('fs');
 let InfoParser = function(){
-	this.parseAddress = function(addressString){
+	this.parseAddressPackage = function(addressString){
 		
 		const streetjson = fs.readFileSync('streetabbreviations.json');
 		const statejson = fs.readFileSync('stateabbreviations.json');
@@ -41,55 +41,54 @@ let InfoParser = function(){
 		}
 		return newArray;
 	}
-	this.parseAddress2 = function(addressString){
+	this.parseAddress = function(addressString){
 		
 		try{
-		addressString = addressString.trim();
-	//	console.log(addressString);
-		
-		const streetjson = fs.readFileSync('streetabbreviations.json');
-		const statejson = fs.readFileSync('stateabbreviations.json');
-		const suffixjson = fs.readFileSync('suffabbreviations.json');
-		const TYPES = JSON.parse(streetjson);
-		const STATES = JSON.parse(statejson);
-		const PRE_SUF = JSON.parse(suffixjson);
-
-		let editedAddress = {};
-
-		let addressLines = trimArray(addressString.split(','));
-
-		let regionLine = addressLines.pop();
-		let regionLineSplit = trimArray(regionLine.split(' '));
-
-		editedAddress.zip = regionLineSplit.pop();
-		let stateAbbr = regionLineSplit.pop();
-		if(stateAbbr in STATES){
-			editedAddress.state = STATES[stateAbbr].toUpperCase();	
-		} else {
-			editedAddress.state = stateAbbr.toUpperCase();
-		}
-		
-		editedAddress.city = regionLineSplit.join(' ');
-
-		let streetLine = ''
-		for(let i = 0; i < addressLines.length; i++){
-			let split = addressLines[i].split(' ');
-			// console.log(split);
-			split.forEach(token => {
-				token = token.toUpperCase();
-				if(token in TYPES){
-					streetLine += TYPES[token] +' ';
-				} else if(token in PRE_SUF){
-					streetLine += PRE_SUF[token].toUpperCase() + ' ';
-				} else {
-					streetLine += token + ' ';
-				}
-			})
-		}
-		editedAddress.street = streetLine;
+			addressString = addressString.trim();
 			
-	//	console.log(editedAddress);
-		return editedAddress;
+			const streetjson = fs.readFileSync('streetabbreviations.json');
+			const statejson = fs.readFileSync('stateabbreviations.json');
+			const suffixjson = fs.readFileSync('suffabbreviations.json');
+			const TYPES = JSON.parse(streetjson);
+			const STATES = JSON.parse(statejson);
+			const PRE_SUF = JSON.parse(suffixjson);
+
+			let editedAddress = {};
+
+			let addressLines = trimArray(addressString.split(','));
+
+			let regionLine = addressLines.pop();
+			let regionLineSplit = trimArray(regionLine.split(' '));
+
+			editedAddress.zip = regionLineSplit.pop();
+			let stateAbbr = regionLineSplit.pop();
+			if(stateAbbr in STATES){
+				editedAddress.state = STATES[stateAbbr];	
+			} else {
+				editedAddress.state = stateAbbr.toUpperCase();
+			}
+			
+			editedAddress.city = titleCase(regionLineSplit.join(' '));
+
+			let streetLine = ''
+			for(let i = 0; i < addressLines.length; i++){
+				let split = addressLines[i].split(' ');
+				// console.log(split);
+				split.forEach(token => {
+					token = token.toUpperCase();
+					if(token in TYPES){
+						streetLine += TYPES[token] +' ';
+					} else if(token in PRE_SUF){
+						streetLine += PRE_SUF[token] + ' ';
+					} else {
+						streetLine += token + ' ';
+					}
+				})
+			}
+			editedAddress.street = titleCase(streetLine);
+				
+		//	console.log(editedAddress);
+			return editedAddress;
 		}
 		catch(e){
 			console.log(e);
@@ -114,15 +113,27 @@ let InfoParser = function(){
 			let ownerNames = trimArray(ownerString.split(','));
 			// console.log(ownerNames);
 			let firstOwner = ownerNames[0];
-			if(FILTER_WORDS.some(word => firstOwner.includes(word))) return firstOwner;
+			if(FILTER_WORDS.some(word => firstOwner.includes(word))) return titleCase(firstOwner);
 			let firstOwnerSplit = firstOwner.split(' ');
 			firstOwnerSplit.push(firstOwnerSplit.shift())
-			return firstOwnerSplit.join(' ');
+			return titleCase(firstOwnerSplit.join(' '));
 		}
 		catch(e){
 			return ownerString;
 		}
 	}
+	let titleCase = function(string){
+
+		const exceptions = ['po', 'llc'];
+		let splitStr = string.toLowerCase().split(' ')
+		for (var i = 0; i < splitStr.length; i++) {
+			// You do not need to check if i is larger than splitStr length, as your for does that for you
+			// Assign it back to the array
+			if(exceptions.includes(splitStr[i])) splitStr[i] = splitStr[i].toUpperCase();
+			else splitStr[i] = splitStr[i].charAt(0).toUpperCase() + splitStr[i].substring(1);     
+		}
+   		return splitStr.join(' ');
+   }
 }
 
 module.exports = InfoParser;
