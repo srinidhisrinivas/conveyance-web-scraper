@@ -10,6 +10,7 @@ const Scraper = require('./Scraper.js');
 
 async function run(start, end, filepath){
 
+	const validConvCodes = ['AM','CO','CE','ED','EE','EN','EX','FD','FE','GD','GE','GW','GX','LE','LW','PD','PE','QC','QE','SE','SU','SW','TD','TE','WD','WE'];
 	let excel = new ExcelWriter();
 	let dateHandler = new DateHandler();
 	let scraper = new Scraper();
@@ -30,7 +31,7 @@ async function run(start, end, filepath){
 		let date = dateList[i];
 		let allHyperlinks = await scraper.getParcelIDHyperlinksForDate(page, date);
 		let processedInformation = await scraper.processHyperLinksForDate(page, allHyperlinks, date);
-		processedInformation = processedInformation.filter(e => e.transfer < e.value);
+		processedInformation = processedInformation.filter(e => e.transfer < e.value && validConvCodes.includes(e.conveyanceCode));
 		finalpath = await excel.writeToFile(filepath, processedInformation, finalpath)
 		// totalInformation = totalInformation.concat(processedInformation);
 	}

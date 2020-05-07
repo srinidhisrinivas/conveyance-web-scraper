@@ -48,16 +48,27 @@ let Scraper = function(){
 		}
 		return info;
 	}
+	this.getInfoFromTableByColumnHeader = async function(table, header, rowNum){
+		let headers = table.shift();
+		// console.log(headers);
+		// console.log(header);
+		let colIndex = headers.indexOf(header);
+		if(colIndex > 0){
+			return table[rowNum][colIndex];
+		} else {
+			return 'ERR'
+		}
+	}
 
 
 	this.processHyperLinksForDate = async function(page, hyperlinks, conveyanceDate){
 		let processedInformation = [];
 		let infoParser = new InfoParser();
-		for(let i = 0; i < 5; i++){
+		for(let i = 0; i < hyperlinks.length; i++){
 			let pageLink = hyperlinks[i];
 			console.log(pageLink);
 			try{
-			await page.goto(pageLink);
+				await page.goto(pageLink);
 			}
 			catch(e){
 				console.log('Unable to visit link');
@@ -83,6 +94,23 @@ let Scraper = function(){
 			let marketValue = await this.getInfoFromTableByRowHeader(marketTableData, 'Total','');
 			marketValue = parseInt(marketValue.replace(/,/g, ''));
 
+
+			let sideMenu = await page.$$("div#sidemenu > li.unsel > a");
+			let transferTag;
+			for(let i = 0; i < sideMenu.length; i++){
+				handle = sideMenu[i];
+				let prop = await handle.getProperty('innerText');
+				let propJSON = await prop.jsonValue();
+				if(propJSON === 'Transfers') transferTag = handle;
+			}
+			
+			await transferTag.click();
+			await page.waitForSelector("table[id='Sales Summary']");
+
+			const conveyanceTableData = await this.getTableDataBySelector(page, 'id', 'Sales Summary', false);
+			const conveyanceCode = await this.getInfoFromTableByColumnHeader(conveyanceTableData, 'Inst Type', 0);
+			console.log(conveyanceCode);
+
 			processedInformation.push({
 				owner: ownerNames,
 				street: ownerAddress.street,
@@ -90,7 +118,8 @@ let Scraper = function(){
 				state: ownerAddress.state,
 				zip: ownerAddress.zip,
 				transfer: transferAmount,
-				value: marketValue
+				value: marketValue,
+				conveyanceCode: conveyanceCode
 			});
 
 			console.log(processedInformation[processedInformation.length - 1]);
