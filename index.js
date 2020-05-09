@@ -24,32 +24,74 @@ async function runCycle(start, end, remainingLinks, remainingDates, finalpath){
 	if(remainingDates === undefined) dateList = dateHandler.convertDateRangeToList(start, end);
 	else dateList = remainingDates;
 	if(remainingLinks !== undefined){
-		let processedInformation = await scraper.processHyperLinksForDate(page, allHyperlinks, date);
+		let processedInformation = await scraper.processHyperLinks(page, remainingLinks);
+		if(!Array.isArray(processedInformation)){
+			console.log(JSON.stringify(processedInformation,null,2));
+			if(processedInformation.processed_information.length > 0){
+				finalpath = await excel.writeToFile(targetDir, processedInformation.processed_information, finalpath);	
+			}
+			await browser.close();
+			processedInformation.remaining_dates = remainingDates;
+			processedInformation.finalpath = finalpath;
+			return processedInformation;
+		}
 		processedInformation = processedInformation.filter(e => e.transfer < e.value && validConvCodes.includes(e.conveyanceCode));
-		finalpath = await excel.writeToFile(targetDir, processedInformation, finalpath)
+		finalpath = await excel.writeToFile(targetDir, processedInformation, finalpath);
+		if(finalpath === 0){
+			// log the error that occurred. Try again, perhaps?
+			// Low priority on this, because errors unlikely to happen here.
+		}
 	}
 
 	console.log(dateList);
-	// If dateList === -1 throw error
 	
 	for(let i = 0; i < dateList.length; i++){
 		let date = dateList[i];
 		let allHyperlinks = await scraper.getParcelIDHyperlinksForDate(page, date);
-		let processedInformation = await scraper.processHyperLinksForDate(page, allHyperlinks, date);
+		if(!Array.isArray(allHyperlinks)){
+			// log whatever error occurred
+			// close browser
+			// return exit code
+		}
+		let processedInformation = await scraper.processHyperLinks(page, allHyperlinks);
+		if(!Array.isArray(processedInformation)){
+			// log whatever error occurred
+			console.log(JSON.stringify(processedInformation,null,2));
+			if(processedInformation.processed_information.length > 0){
+				finalpath = await excel.writeToFile(targetDir, processedInformation.processed_information, finalpath);	
+			}
+			remainingDates = dateList.slice(i+1);
+			await browser.close();
+			processedInformation.remaining_dates = remainingDates;
+			processedInformation.finalpath = finalpath;
+			return processedInformation;
+		}
 		processedInformation = processedInformation.filter(e => e.transfer < e.value && validConvCodes.includes(e.conveyanceCode));
 		finalpath = await excel.writeToFile(targetDir, processedInformation, finalpath)
 	}
-
-	console.log('Complete!');
-	await browser.close();
+	return {
+		code: 0
+	};
 }
 
-async function run(){
-	// Check log for last exit code
-	// If had to exit in between, get list of remaining links, dates and filename and pass to run cycle
-	// If not, run cycle for a new thing
-	// If exit with error code, log it and run again
-	// If exit with normal code, close browser and end.
+async function run(start, end){
+	let remainingDates, remainingLinks, finalpath;
+	while(true){
+		let returnStatus = await runCycle(start, end, remainingLinks, remainingDates, finalpath);
+		if(returnStatus.code === 0){
+			await browser.close();
+			// log success
+			console.log('Success');
+			return; 
+		}
+		// log error
+		console.log(JSON.stringify(returnStatus,null,2));
+		remainingDates = returnStatus.remaining_dates;
+		remainingLinks = returnStatus.remaining_links;
+		finalpath = returnStatus.finalpath;
+		console.log('Failed. See above error. Trying again.');
+	}
+	
 }
 
 const targetStartDate = '04/02/2020';
@@ -57,6 +99,6 @@ const targetEndDate = '04/02/2020';
 const targetFilepath = 'C:\\Python37\\Programs\\AuditorScraper\\Excel'
 //run(targetStartDate, targetEndDate, targetFilepath);
 
-module.exports = runCycle;
+module.exports = run;
 //console.log(addressParser.parseLocation(' 7926 TRIBUTARY LN, REYNOLDSBURG OH 43068'));
 //parseAddress( '2312 EAST 5TH AVE, COLUMBUS, OH 43219');

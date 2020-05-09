@@ -61,19 +61,28 @@ let Scraper = function(){
 	}
 
 
-	this.processHyperLinksForDate = async function(page, hyperlinks, conveyanceDate){
+	this.processHyperLinks = async function(page, hyperlinks){
 		let processedInformation = [];
 		let infoParser = new InfoParser();
 		for(let i = 0; i < hyperlinks.length; i++){
 			let pageLink = hyperlinks[i];
 			console.log(pageLink);
-			try{
-				await page.goto(pageLink);
+
+			let visitAttemptCount;
+			for(visitAttemptCount = 0; visitAttemptCount < 3; visitAttemptCount++){
+				try{
+					await page.goto(pageLink);
+				}
+				catch(e){
+					console.log('Unable to visit ' + pageLink + '. Attempt #' + visitAttemptCount);
+					continue;
+				}
+				break;	
 			}
-			catch(e){
-				console.log('Unable to visit link');
-				continue;
+			if(visitAttemptCount === 3){
+				console.log('Failed to reach ' + pageLink + '. Giving up.');
 			}
+			
 
 			// const parcelIDString = (await (await (await page.$('.DataletHeaderTopLeft')).getProperty('innerText')).jsonValue());
 			// const parcelID = parcelIDString.substring(parcelIDString.indexOf(':')+2);
@@ -85,6 +94,14 @@ let Scraper = function(){
 			// console.log(ownerNames);
 			let ownerAddress = await this.getInfoFromTableByRowHeader(ownerTableData, 'Owner Address',',');
 			ownerAddress = infoParser.parseAddress(ownerAddress);
+			if(ownerAddress.street === ''){
+				let remainingLinks = hyperlinks.slice(i);
+				return {
+					code: 1,
+					remaining_links: remainingLinks,
+					processed_information: processedInformation
+				};
+			}
 
 			const transferTableData = await this.getTableDataBySelector(page, 'id','Transfer',false);
 			let transferAmount = await this.getInfoFromTableByRowHeader(transferTableData,'Transfer Price','');
