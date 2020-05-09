@@ -109,7 +109,6 @@ let Scraper = function(){
 
 			const conveyanceTableData = await this.getTableDataBySelector(page, 'id', 'Sales Summary', false);
 			const conveyanceCode = await this.getInfoFromTableByColumnHeader(conveyanceTableData, 'Inst Type', 0);
-			console.log(conveyanceCode);
 
 			processedInformation.push({
 				owner: ownerNames,
