@@ -10,32 +10,47 @@ const Scraper = require('./Scraper.js');
 
 async function runCycle(start, end, remainingLinks, remainingDates, finalpath){
 
-	const validConvCodes = ['AM','CO','CE','ED','EE','EN','EX','FD','FE','GD','GE','GW','GX','LE','LW','PD','PE','QC','QE','SE','SU','SW','TD','TE','WD','WE'];
-	let excel = new ExcelWriter();
 	let dateHandler = new DateHandler();
+
+	start = dateHandler.incrementDate(new Date(Date.parse(start)));
+	end = dateHandler.incrementDate(new Date(Date.parse(end)))
+
+	function infoValidator(info){
+		const validConvCodes = ['AM','CO','CE','ED','EE','EN','EX','FD','FE','GD','GE','GW','GX','LE','LW','PD','PE','QC','QE','SE','SU','SW','TD','TE','WD','WE'];	
+		let valid = false;
+		if(info.transfer < info.value) valid = true;
+		if('conveyance_code' in info){
+			return valid && validConvCodes.includes(info.conveyance_code);
+		} else {
+			return valid;
+		}
+	}	
+	
+	let excel = new ExcelWriter(start, end);
+	
 	let scraper = new Scraper();
 	let targetDir = targetFilepath;
 	const browser = await puppeteer.launch({headless: false});
 	const page = await browser.newPage();
 	let dateList;
 
-	start = dateHandler.incrementDate(new Date(Date.parse(start)));
-	end = dateHandler.incrementDate(new Date(Date.parse(end)))
 	if(remainingDates === undefined) dateList = dateHandler.convertDateRangeToList(start, end);
 	else dateList = remainingDates;
 	if(remainingLinks !== undefined){
-		let processedInformation = await scraper.processHyperLinks(page, remainingLinks);
+		let processedInformation = await scraper.processHyperLinks(page, remainingLinks, infoValidator);
 		if(!Array.isArray(processedInformation)){
 			console.log(JSON.stringify(processedInformation,null,2));
 			if(processedInformation.processed_information.length > 0){
-				finalpath = await excel.writeToFile(targetDir, processedInformation.processed_information, finalpath);	
+				let currentInfo = processedInformation.processed_information;
+				// currentInfo = currentInfo.filter(e => e.transfer < e.value && validConvCodes.includes(e.conveyanceCode));
+				finalpath = await excel.writeToFile(targetDir, currentInfo, finalpath);	
 			}
 			await browser.close();
 			processedInformation.remaining_dates = remainingDates;
 			processedInformation.finalpath = finalpath;
 			return processedInformation;
 		}
-		processedInformation = processedInformation.filter(e => e.transfer < e.value && validConvCodes.includes(e.conveyanceCode));
+		// processedInformation = processedInformation.filter(e => e.transfer < e.value && validConvCodes.includes(e.conveyanceCode));
 		finalpath = await excel.writeToFile(targetDir, processedInformation, finalpath);
 		if(finalpath === 0){
 			// log the error that occurred. Try again, perhaps?
@@ -53,12 +68,14 @@ async function runCycle(start, end, remainingLinks, remainingDates, finalpath){
 			// close browser
 			// return exit code
 		}
-		let processedInformation = await scraper.processHyperLinks(page, allHyperlinks);
+		let processedInformation = await scraper.processHyperLinks(page, allHyperlinks, infoValidator);
 		if(!Array.isArray(processedInformation)){
 			// log whatever error occurred
 			console.log(JSON.stringify(processedInformation,null,2));
 			if(processedInformation.processed_information.length > 0){
-				finalpath = await excel.writeToFile(targetDir, processedInformation.processed_information, finalpath);	
+				let currentInfo = processedInformation.processed_information;
+				// currentInfo = currentInfo.filter(e => e.transfer < e.value && validConvCodes.includes(e.conveyanceCode));
+				finalpath = await excel.writeToFile(targetDir, currentInfo, finalpath);	
 			}
 			remainingDates = dateList.slice(i+1);
 			await browser.close();
@@ -66,9 +83,10 @@ async function runCycle(start, end, remainingLinks, remainingDates, finalpath){
 			processedInformation.finalpath = finalpath;
 			return processedInformation;
 		}
-		processedInformation = processedInformation.filter(e => e.transfer < e.value && validConvCodes.includes(e.conveyanceCode));
+		// processedInformation = processedInformation.filter(e => (e.transfer < e.value) && validConvCodes.includes(e.conveyanceCode));
 		finalpath = await excel.writeToFile(targetDir, processedInformation, finalpath)
 	}
+	await browser.close();
 	return {
 		code: 0
 	};
@@ -79,7 +97,7 @@ async function run(start, end){
 	while(true){
 		let returnStatus = await runCycle(start, end, remainingLinks, remainingDates, finalpath);
 		if(returnStatus.code === 0){
-			await browser.close();
+			
 			// log success
 			console.log('Success');
 			return; 
