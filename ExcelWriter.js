@@ -1,5 +1,7 @@
 const Excel = require('exceljs');
-let ExcelWriter = function(){
+let ExcelWriter = function(start, end){
+	this.startDate = start;
+	this.endDate = end;
 	this.writeToFile = async (filepath, information, finalpath) => {
 
 		console.log(finalpath);
@@ -8,12 +10,21 @@ let ExcelWriter = function(){
 		let sheet;
 		if(finalpath === undefined){
 			let currentDate = new Date();
+			// let filename = 'Conveyances'+ '_' 
+			// 			+ currentDate.getFullYear() + '_'
+			// 			+ (currentDate.getMonth() < 9 ? '0' : '') + (currentDate.getMonth() + 1) + '_'
+			// 			+ (currentDate.getDate() < 10 ? '0' : '') + currentDate.getDate() + '_'
+			// 			+ (currentDate.getHours() < 10 ? '0' : '') + currentDate.getHours() + '_'
+			// 			+ (currentDate.getMinutes() < 10 ? '0' : '') + currentDate.getMinutes() + '.xlsx';
 			let filename = 'Conveyances'+ '_' 
-						+ currentDate.getFullYear() + '_'
-						+ (currentDate.getMonth() < 9 ? '0' : '') + (currentDate.getMonth() + 1) + '_'
-						+ (currentDate.getDate() < 10 ? '0' : '') + currentDate.getDate() + '_'
-						+ (currentDate.getHours() < 10 ? '0' : '') + currentDate.getHours() + '_'
-						+ (currentDate.getMinutes() < 10 ? '0' : '') + currentDate.getMinutes() + '.xlsx';
+						+ this.startDate.getFullYear()
+						+ (this.startDate.getMonth() < 9 ? '0' : '') + (this.startDate.getMonth() + 1)
+						+ (this.startDate.getDate() < 10 ? '0' : '') + this.startDate.getDate() + '_'
+						+ this.endDate.getFullYear()
+						+ (this.endDate.getMonth() < 9 ? '0' : '') + (this.endDate.getMonth() + 1)
+						+ (this.endDate.getDate() < 10 ? '0' : '') + this.endDate.getDate()
+						+ '.xlsx'
+
 			finalpath = filepath + '\\' + filename;
 			sheet = workbook.addWorksheet(SHEET_NAME);
 			sheet.columns = [
@@ -53,7 +64,7 @@ let ExcelWriter = function(){
 							conveyance.zip,
 							conveyance.transfer,
 							conveyance.value,
-							conveyance.conveyanceCode];
+							conveyance.conveyance_code];
 			sheet.addRow(dataArray);
 		}
 

@@ -14,9 +14,9 @@ let DateHandler = function(){
 		if(start === 'today'){
 			return [formatDate(Date.now())];
 		}
-		if(start.getTime() > end.getTime()){
-			return -1;
-		}
+		// if(start.getTime() > end.getTime()){
+		// 	return -1;
+		// }
 		let dateList = [];
 		for (var d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
 	    	dateList.push(formatDate(new Date(d)));

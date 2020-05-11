@@ -61,30 +61,56 @@ let Scraper = function(){
 	}
 
 
-	this.processHyperLinksForDate = async function(page, hyperlinks, conveyanceDate){
+	this.processHyperLinks = async function(page, hyperlinks, infoValidator){
 		let processedInformation = [];
 		let infoParser = new InfoParser();
 		for(let i = 0; i < hyperlinks.length; i++){
 			let pageLink = hyperlinks[i];
 			console.log(pageLink);
-			try{
-				await page.goto(pageLink);
+
+			let visitAttemptCount;
+			for(visitAttemptCount = 0; visitAttemptCount < 3; visitAttemptCount++){
+				try{
+					await page.goto(pageLink);
+				}
+				catch(e){
+					console.log('Unable to visit ' + pageLink + '. Attempt #' + visitAttemptCount);
+					continue;
+				}
+				break;	
 			}
-			catch(e){
-				console.log('Unable to visit link');
-				continue;
+			if(visitAttemptCount === 3){
+				console.log('Failed to reach ' + pageLink + '. Giving up.');
+				let remainingLinks = hyperlinks.slice(i);
+				return {
+					code: 1,
+					remaining_links: remainingLinks,
+					processed_information: processedInformation
+				};
 			}
+			
 
 			// const parcelIDString = (await (await (await page.$('.DataletHeaderTopLeft')).getProperty('innerText')).jsonValue());
 			// const parcelID = parcelIDString.substring(parcelIDString.indexOf(':')+2);
 
 			const ownerTableData = await this.getTableDataBySelector(page, 'id','Owner',false);
+			// console.log('Owner Table Data:');
+			// console.log(ownerTableData);
 			let ownerNames = await this.getInfoFromTableByRowHeader(ownerTableData, 'Owner', ',');
 			ownerNames = infoParser.parseOwnerNames(ownerNames);
 
 			// console.log(ownerNames);
 			let ownerAddress = await this.getInfoFromTableByRowHeader(ownerTableData, 'Owner Address',',');
 			ownerAddress = infoParser.parseAddress(ownerAddress);
+			// console.log('Street: ' + ownerAddress.street);
+			if(ownerAddress.street === ''){
+				let remainingLinks = hyperlinks.slice(i);
+				return {
+					code: 1,
+					remaining_links: remainingLinks,
+					processed_information: processedInformation
+				};
+			}
 
 			const transferTableData = await this.getTableDataBySelector(page, 'id','Transfer',false);
 			let transferAmount = await this.getInfoFromTableByRowHeader(transferTableData,'Transfer Price','');
@@ -94,6 +120,20 @@ let Scraper = function(){
 			let marketValue = await this.getInfoFromTableByRowHeader(marketTableData, 'Total','');
 			marketValue = parseInt(marketValue.replace(/,/g, ''));
 
+			let currentInfo = {
+				owner: ownerNames,
+				street: ownerAddress.street,
+				city: ownerAddress.city,
+				state: ownerAddress.state,
+				zip: ownerAddress.zip,
+				transfer: transferAmount,
+				value: marketValue
+			};
+
+			if(!infoValidator(currentInfo)){
+				console.log('Value Validation Failed');
+				continue;
+			}
 
 			let sideMenu = await page.$$("div#sidemenu > li.unsel > a");
 			let transferTag;
@@ -104,22 +144,37 @@ let Scraper = function(){
 				if(propJSON === 'Transfers') transferTag = handle;
 			}
 			
-			await transferTag.click();
-			await page.waitForSelector("table[id='Sales Summary']");
+			for(visitAttemptCount = 0; visitAttemptCount < 3; visitAttemptCount++){
+				try{
+					await transferTag.click();
+					await page.waitForSelector("table[id='Sales Summary']");
+				}
+				catch(e){
+					console.log('Unable to visit transfers. Attempt #' + visitAttemptCount);
+					continue;
+				}
+				break;	
+			}
+			if(visitAttemptCount === 3){
+				console.log('Failed to reach transfers. Giving up.');
+				let remainingLinks = hyperlinks.slice(i);
+				return {
+					code: 1,
+					remaining_links: remainingLinks,
+					processed_information: processedInformation
+				};
+			}
+			
 
 			const conveyanceTableData = await this.getTableDataBySelector(page, 'id', 'Sales Summary', false);
 			const conveyanceCode = await this.getInfoFromTableByColumnHeader(conveyanceTableData, 'Inst Type', 0);
 
-			processedInformation.push({
-				owner: ownerNames,
-				street: ownerAddress.street,
-				city: ownerAddress.city,
-				state: ownerAddress.state,
-				zip: ownerAddress.zip,
-				transfer: transferAmount,
-				value: marketValue,
-				conveyanceCode: conveyanceCode
-			});
+			currentInfo.conveyance_code = conveyanceCode;
+			if(!infoValidator(currentInfo)){
+				console.log('ConveyanceCode Validation Failed')
+				continue;
+			}
+			processedInformation.push(currentInfo);
 
 			console.log(processedInformation[processedInformation.length - 1]);
 
