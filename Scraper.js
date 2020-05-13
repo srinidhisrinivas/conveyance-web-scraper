@@ -1,4 +1,5 @@
 const InfoParser = require('./InfoParser.js');
+const puppeteer = require('puppeteer');
 
 const targetAddress = 'https://apps.franklincountyauditor.com/dailyconveyance';
 
@@ -65,6 +66,7 @@ let Scraper = function(){
 		let processedInformation = [];
 		let infoParser = new InfoParser();
 		for(let i = 0; i < hyperlinks.length; i++){
+			// if(i > 130) break;
 			let pageLink = hyperlinks[i];
 			console.log(pageLink);
 
@@ -238,4 +240,28 @@ let Scraper = function(){
 
 }
 
+// async function ex(address){
+// 	let scraper = new Scraper();
+// 	const browser = await puppeteer.launch({headless: true});
+// 	const page = await browser.newPage();
+
+// 	await page.goto(address);
+// 	await page.waitForSelector('table#ep538257');
+
+// 	let tableData = await scraper.getTableDataBySelector(page, 'id','ep538257',false);
+// 	tableData.shift();
+// 	tableData.pop();
+// 	tableData = tableData.filter(e => e[1].trim());
+// 	tableData = tableData.map(e => [e[1].replace(/\*/g,''),e[0]]);
+// 	let map = {};
+// 	tableData.forEach(e => map[e[0]] = e[1]);
+// 	const fs = require('fs');
+
+// 	let w = fs.createWriteStream('unitabbreviations.json');
+// 	w.write(JSON.stringify(map));
+// 	w.close();
+// 	console.log(map);
+// }
+
+// ex('https://pe.usps.com/text/pub28/28apc_003.htm');
 module.exports = Scraper

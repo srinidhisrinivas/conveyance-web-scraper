@@ -49,9 +49,11 @@ let InfoParser = function(){
 			const streetjson = fs.readFileSync('streetabbreviations.json');
 			const statejson = fs.readFileSync('stateabbreviations.json');
 			const suffixjson = fs.readFileSync('suffabbreviations.json');
+			const unitjson = fs.readFileSync('unitabbreviations.json');
 			const TYPES = JSON.parse(streetjson);
 			const STATES = JSON.parse(statejson);
 			const PRE_SUF = JSON.parse(suffixjson);
+			const UNIT = JSON.parse(unitjson);
 
 			let editedAddress = {};
 
@@ -80,6 +82,8 @@ let InfoParser = function(){
 						streetLine += TYPES[token] +' ';
 					} else if(token in PRE_SUF){
 						streetLine += PRE_SUF[token] + ' ';
+					} else if(token in UNIT){
+						streetLine += UNIT[token] + ' ';
 					} else {
 						streetLine += token + ' ';
 					}
