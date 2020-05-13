@@ -30,7 +30,7 @@ async function runCycle(start, end, remainingLinks, remainingDates, finalpath){
 	
 	let scraper = new Scraper();
 	let targetDir = targetFilepath;
-	const browser = await puppeteer.launch({headless: false});
+	const browser = await puppeteer.launch({headless: true});
 	const page = await browser.newPage();
 	let dateList;
 
@@ -88,7 +88,8 @@ async function runCycle(start, end, remainingLinks, remainingDates, finalpath){
 	}
 	await browser.close();
 	return {
-		code: 0
+		code: 0,
+		finalpath: finalpath
 	};
 }
 
@@ -100,7 +101,7 @@ async function run(start, end){
 			
 			// log success
 			console.log('Success');
-			return; 
+			return returnStatus; 
 		}
 		// log error
 		console.log(JSON.stringify(returnStatus,null,2));
