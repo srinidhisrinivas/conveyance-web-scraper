@@ -4,7 +4,8 @@
 
 const express = require("express");
 const path = require("path");
-const scrape = require("./index.js")
+const scrape = require("./index.js");
+const CONFIG = require("./ConfigReader.js");
 
 
 /**
@@ -12,7 +13,7 @@ const scrape = require("./index.js")
  */
 
 const app = express();
-const port = process.env.PORT || "8000";
+const port = process.env.PORT || CONFIG.DEV_CONFIG.APP_PORT;
 
 // app.use(bodyParser.urlencoded({extended:true}));
 app.use(express.json());
@@ -27,7 +28,7 @@ app.get("/complete", (req, res) => {
 
 app.post("/submit", (req, res) =>{
 	// res.send(req);
-	const TIMEOUT_VAL = 20000;
+	const TIMEOUT_VAL = 18000000;
 	res.setTimeout(TIMEOUT_VAL);
 	// console.log(req.params);
 	let data = req.body;
@@ -36,22 +37,32 @@ app.post("/submit", (req, res) =>{
 	console.log('Post received')
 	console.log((new Date()).toString());
 	let id = setTimeout(function(){
-		res.send({text: 'Timed out!',
-					  description: 'Took too long for thing to respond.'
+		res.send({text: 'I\'m tired of waiting for the program to finish!',
+					  description: 'But it is still running. Please wait for file to be appended with \'_complete\' before opening.'
 			});
 	}, (TIMEOUT_VAL-500));
 	scrape(data.start, data.end).then((status) => {
 		console.log('Complete at server, sending response');
 		console.log((new Date()).toString());
-		if(status.code === 0){
-			res.send({text: 'Complete!',
-					  description: 'Excel file is: ' + status.finalpath
-			});
-		} else {
-			res.send({text: 'Failed!',
-					  description: 'See error log for more information'
-			});
+		try{
+
+			if(status.code === CONFIG.DEV_CONFIG.SUCCESS_CODE){
+				res.send({text: 'Complete!',
+						  description: 'Excel file is: ' + status.finalpath
+				});
+			} else {
+				res.send({text: 'Failed!',
+						  description: 'See error log for more information'
+				});
+			}
+		} catch (e){
+			console.log(e);
+			return;
 		}
+	}).catch(function error(e){
+		console.log(e.message);
+		res.send({text: 'Error!',
+				description: 'Please check error log for latest error'});
 	});
 	
 });

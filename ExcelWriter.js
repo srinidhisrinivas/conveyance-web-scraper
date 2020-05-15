@@ -1,4 +1,5 @@
 const Excel = require('exceljs');
+const CONFIG = require('./ConfigReader.js');
 let ExcelWriter = function(start, end){
 	this.startDate = start;
 	this.endDate = end;
@@ -71,6 +72,30 @@ let ExcelWriter = function(start, end){
 		await workbook.xlsx.writeFile(finalpath);
 
 		return finalpath;
+	}
+	let appendToFileName = function(filepath, appendage){
+		let fileparts = filepath.split('\\');
+		let filename = fileparts.pop();
+		let filedir = fileparts.join('\\');
+
+		let nameparts = filename.split('.');
+		let name = nameparts[0];
+		let ext = nameparts[1];
+
+		name = name + appendage;
+
+		return filedir + '\\' + name + '.' + ext;
+	}
+	this.appendComplete = function(filepath){
+		let newFilePath = appendToFileName(filepath, CONFIG.DEV_CONFIG.COMPLETE_APPEND);
+		var fs = require('fs');
+		fs.rename(filepath, newFilePath, function(err) {
+		    if ( err ) console.log('ERROR: ' + err);
+		});
+		return newFilePath;
+	}
+	this.appendError = function(filepath){
+		return appendToFileName(filepath, CONFIG.DEV_CONFIG.ERROR_APPEND);
 	}
 }
 module.exports = ExcelWriter;

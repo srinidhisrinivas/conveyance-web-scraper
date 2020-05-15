@@ -28,7 +28,7 @@
 			  	var startDate = document.getElementById('startDate').value;
 			  	var endDate = document.getElementById('endDate').value;
 			  	// var directory = document.getElementById('directory').value;
-			  	$.post({
+			  	$.ajax({
 			  		url: '/submit',
 			  		method: 'POST',
 			  		contentType: 'application/json',

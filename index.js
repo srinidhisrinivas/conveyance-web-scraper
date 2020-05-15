@@ -6,6 +6,7 @@ const ExcelWriter = require('./ExcelWriter.js');
 const DateHandler = require('./DateHandler.js');
 const InfoParser = require('./InfoParser.js');
 const Scraper = require('./Scraper.js');
+const CONFIG = require('./ConfigReader.js');
 
 
 async function runCycle(start, end, remainingLinks, remainingDates, finalpath){
@@ -15,10 +16,11 @@ async function runCycle(start, end, remainingLinks, remainingDates, finalpath){
 	start = dateHandler.incrementDate(new Date(Date.parse(start)));
 	end = dateHandler.incrementDate(new Date(Date.parse(end)))
 
-	function infoValidator(info){
-		const validConvCodes = ['AM','CO','CE','ED','EE','EN','EX','FD','FE','GD','GE','GW','GX','LE','LW','PD','PE','QC','QE','SE','SU','SW','TD','TE','WD','WE'];	
+	function infoValidator(info, processedInformation){
+		const validConvCodes = CONFIG.USER_CONFIG.VALID_CONV_CODES;	
 		let valid = false;
-		if(info.transfer < info.value) valid = true;
+		if(info.transfer < info.value && info.transfer > 0) valid = true;
+		if(processedInformation.some(e => e.owner === info.owner)) valid = false;
 		if('conveyance_code' in info){
 			return valid && validConvCodes.includes(info.conveyance_code);
 		} else {
@@ -52,7 +54,7 @@ async function runCycle(start, end, remainingLinks, remainingDates, finalpath){
 		}
 		// processedInformation = processedInformation.filter(e => e.transfer < e.value && validConvCodes.includes(e.conveyanceCode));
 		finalpath = await excel.writeToFile(targetDir, processedInformation, finalpath);
-		if(finalpath === 0){
+		if(finalpath === CONFIG.DEV_CONFIG.PATH_ERROR_CODE){
 			// log the error that occurred. Try again, perhaps?
 			// Low priority on this, because errors unlikely to happen here.
 		}
@@ -71,7 +73,7 @@ async function runCycle(start, end, remainingLinks, remainingDates, finalpath){
 		let processedInformation = await scraper.processHyperLinks(page, allHyperlinks, infoValidator);
 		if(!Array.isArray(processedInformation)){
 			// log whatever error occurred
-			console.log(JSON.stringify(processedInformation,null,2));
+			// console.log(JSON.stringify(processedInformation,null,2));
 			if(processedInformation.processed_information.length > 0){
 				let currentInfo = processedInformation.processed_information;
 				// currentInfo = currentInfo.filter(e => e.transfer < e.value && validConvCodes.includes(e.conveyanceCode));
@@ -87,17 +89,18 @@ async function runCycle(start, end, remainingLinks, remainingDates, finalpath){
 		finalpath = await excel.writeToFile(targetDir, processedInformation, finalpath)
 	}
 	await browser.close();
+	finalpath = excel.appendComplete(finalpath);
 	return {
-		code: 0,
+		code: CONFIG.DEV_CONFIG.SUCCESS_CODE,
 		finalpath: finalpath
 	};
 }
 
 async function run(start, end){
-	let remainingDates, remainingLinks, finalpath;
+	let remainingDates, remainingLinks, finalpath, lastErroredLink = '', numLastLinkErrors = 0;
 	while(true){
 		let returnStatus = await runCycle(start, end, remainingLinks, remainingDates, finalpath);
-		if(returnStatus.code === 0){
+		if(returnStatus.code === CONFIG.DEV_CONFIG.SUCCESS_CODE){
 			
 			// log success
 			console.log('Success');
@@ -106,6 +109,19 @@ async function run(start, end){
 		// log error
 		console.log(JSON.stringify(returnStatus,null,2));
 		remainingDates = returnStatus.remaining_dates;
+		let erroredLink = returnStatus.remaining_links[0];
+		// If link causes error more than once
+		if(erroredLink === lastErroredLink){
+			numLastLinkErrors++;
+			if(numLastLinkErrors > CONFIG.DEV_CONFIG.MAX_LINK_ERRORS){
+				console.log(erroredLink + ' caused error more than ' + CONFIG.DEV_CONFIG.MAX_LINK_ERRORS + ' time. Skipping.');
+				returnStatus.remaining_links.shift();
+				numLastLinkErrors = 0;
+			}
+		} else {
+			numLastLinkErrors = 0;
+		}
+		lastErroredLink = erroredLink;
 		remainingLinks = returnStatus.remaining_links;
 		finalpath = returnStatus.finalpath;
 		console.log('Failed. See above error. Trying again.');
@@ -115,7 +131,7 @@ async function run(start, end){
 
 const targetStartDate = '04/02/2020';
 const targetEndDate = '04/02/2020';
-const targetFilepath = 'C:\\Python37\\Programs\\AuditorScraper\\Excel'
+const targetFilepath = CONFIG.USER_CONFIG.TARGET_DIR;
 //run(targetStartDate, targetEndDate, targetFilepath);
 
 module.exports = run;

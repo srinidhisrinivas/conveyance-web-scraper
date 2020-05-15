@@ -1,7 +1,8 @@
 const InfoParser = require('./InfoParser.js');
 const puppeteer = require('puppeteer');
+const CONFIG = require('./ConfigReader.js');
 
-const targetAddress = 'https://apps.franklincountyauditor.com/dailyconveyance';
+const targetAddress = CONFIG.DEV_CONFIG.FRANKLIN_TARGET_URL;
 
 let Scraper = function(){
 	this.getTableDataBySelector = async function(page, selector, value, html){
@@ -85,7 +86,7 @@ let Scraper = function(){
 				console.log('Failed to reach ' + pageLink + '. Giving up.');
 				let remainingLinks = hyperlinks.slice(i);
 				return {
-					code: 1,
+					code: CONFIG.DEV_CONFIG.PAGE_ACCESS_ERROR_CODE,
 					remaining_links: remainingLinks,
 					processed_information: processedInformation
 				};
@@ -108,7 +109,7 @@ let Scraper = function(){
 			if(ownerAddress.street === ''){
 				let remainingLinks = hyperlinks.slice(i);
 				return {
-					code: 1,
+					code: CONFIG.DEV_CONFIG.PAGE_ACCESS_ERROR_CODE,
 					remaining_links: remainingLinks,
 					processed_information: processedInformation
 				};
@@ -132,7 +133,7 @@ let Scraper = function(){
 				value: marketValue
 			};
 
-			if(!infoValidator(currentInfo)){
+			if(!infoValidator(currentInfo, processedInformation)){
 				console.log('Value Validation Failed');
 				continue;
 			}
@@ -161,7 +162,7 @@ let Scraper = function(){
 				console.log('Failed to reach transfers. Giving up.');
 				let remainingLinks = hyperlinks.slice(i);
 				return {
-					code: 1,
+					code: CONFIG.DEV_CONFIG.PAGE_ACCESS_ERROR_CODE,
 					remaining_links: remainingLinks,
 					processed_information: processedInformation
 				};
@@ -172,7 +173,7 @@ let Scraper = function(){
 			const conveyanceCode = await this.getInfoFromTableByColumnHeader(conveyanceTableData, 'Inst Type', 0);
 
 			currentInfo.conveyance_code = conveyanceCode;
-			if(!infoValidator(currentInfo)){
+			if(!infoValidator(currentInfo, processedInformation)){
 				console.log('ConveyanceCode Validation Failed')
 				continue;
 			}
