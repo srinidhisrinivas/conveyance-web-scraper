@@ -1,7 +1,6 @@
 const puppeteer = require('puppeteer');
 const fs = require('fs');
 const Excel = require('exceljs');
-const addressParser = require('parse-address');
 const ExcelWriter = require('./ExcelWriter.js');
 const DateHandler = require('./DateHandler.js');
 const InfoParser = require('./InfoParser.js');
