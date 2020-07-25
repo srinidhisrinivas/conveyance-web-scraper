@@ -27,7 +27,7 @@ const port = process.env.PORT || CONFIG.DEV_CONFIG.APP_PORT;
 app.use(express.json());
 
 app.get("/", (req, res) => {
-  res.status(200).sendFile(path.join(__dirname + "/"+county+"_index.html"));
+  res.status(200).sendFile(path.join(__dirname + "/counties/"+county+"/index.html"));
 });
 
 open("http://localhost:"+port);

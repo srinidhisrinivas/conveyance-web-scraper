@@ -1,7 +1,7 @@
-const InfoParser = require('./InfoParser.js');
+const InfoParser = require('../../InfoParser.js');
 const puppeteer = require('puppeteer');
-const ConfigReader = require('./ConfigReader.js');
-const ErrorLogger = require("./ErrorLogger.js");
+const ConfigReader = require('../../ConfigReader.js');
+const ErrorLogger = require("../../ErrorLogger.js");
 const ERROR_LOGGER = new ErrorLogger('franklin');
 const CONFIG = new ConfigReader('franklin');
 const targetAddress = CONFIG.DEV_CONFIG.FRANKLIN_TARGET_URL;
