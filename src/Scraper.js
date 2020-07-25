@@ -1,8 +1,9 @@
 const InfoParser = require('./InfoParser.js');
 const puppeteer = require('puppeteer');
-const CONFIG = require('./ConfigReader.js');
-const ERROR_LOGGER = require("./ErrorLogger.js");
-
+const ConfigReader = require('./ConfigReader.js');
+const ErrorLogger = require("./ErrorLogger.js");
+const ERROR_LOGGER = new ErrorLogger('franklin');
+const CONFIG = new ConfigReader('franklin');
 const targetAddress = CONFIG.DEV_CONFIG.FRANKLIN_TARGET_URL;
 
 let Scraper = function(){
@@ -27,7 +28,6 @@ let Scraper = function(){
 			});
 		}
 		
-		return tableData;
 	}
 
 	this.getInfoFromTableByRowHeader = async function(table, header, delimiter){
@@ -73,7 +73,7 @@ let Scraper = function(){
 			console.log(pageLink);
 
 			let visitAttemptCount;
-			for(visitAttemptCount = 0; visitAttemptCount < 3; visitAttemptCount++){
+			for(visitAttemptCount = 0; visitAttemptCount < CONFIG.DEV_CONFIG.MAX_VISIT_ATTEMPTS; visitAttemptCount++){
 				try{
 					await page.goto(pageLink);
 				}
@@ -83,7 +83,7 @@ let Scraper = function(){
 				}
 				break;	
 			}
-			if(visitAttemptCount === 3){
+			if(visitAttemptCount === CONFIG.DEV_CONFIG.MAX_VISIT_ATTEMPTS){
 				console.log('Failed to reach ' + pageLink + '. Giving up.');
 				let remainingLinks = hyperlinks.slice(i);
 				return {
@@ -148,7 +148,7 @@ let Scraper = function(){
 				if(propJSON === 'Transfers') transferTag = handle;
 			}
 			
-			for(visitAttemptCount = 0; visitAttemptCount < 3; visitAttemptCount++){
+			for(visitAttemptCount = 0; visitAttemptCount < CONFIG.DEV_CONFIG.MAX_VISIT_ATTEMPTS; visitAttemptCount++){
 				try{
 					await transferTag.click();
 					await page.waitForSelector("table[id='Sales Summary']");
@@ -159,7 +159,7 @@ let Scraper = function(){
 				}
 				break;	
 			}
-			if(visitAttemptCount === 3){
+			if(visitAttemptCount === CONFIG.DEV_CONFIG.MAX_VISIT_ATTEMPTS){
 				console.log('Failed to reach transfers. Giving up.');
 				let remainingLinks = hyperlinks.slice(i);
 				return {

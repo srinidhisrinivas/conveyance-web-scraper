@@ -1,7 +1,8 @@
 const fs = require('fs');
-let ConfigReader = function(){
-	const DEV_CONFIG_FILENAME = 'config/dev_config.json';
-	const USER_CONFIG_FILENAME = 'config/user_config.json';
+let ConfigReader = function(county){
+	this.county = county;
+	const DEV_CONFIG_FILENAME = 'config/'+this.county.toLowerCase()+'_dev_config.json';
+	const USER_CONFIG_FILENAME = 'config/'+this.county.toLowerCase()+'_user_config.json';
 	
 	
 	let devConfigJSON = fs.readFileSync(DEV_CONFIG_FILENAME);
@@ -11,4 +12,4 @@ let ConfigReader = function(){
 
 }
 
-module.exports = new ConfigReader();
+module.exports = ConfigReader;

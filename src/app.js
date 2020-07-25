@@ -5,9 +5,14 @@
 const express = require("express");
 const path = require("path");
 const scrape = require("./index.js");
-const CONFIG = require("./ConfigReader.js");
-const ERROR_LOGGER = require("./ErrorLogger.js");
+const ConfigReader = require("./ConfigReader.js");
+const ErrorLogger = require("./ErrorLogger.js");
+const open = require("open");
 
+const args = process.argv.slice(2);
+const county = args[0];
+const CONFIG = new ConfigReader(county);
+const ERROR_LOGGER = new ErrorLogger(county);
 
 /**
  * App Variables
@@ -16,12 +21,16 @@ const ERROR_LOGGER = require("./ErrorLogger.js");
 const app = express();
 const port = process.env.PORT || CONFIG.DEV_CONFIG.APP_PORT;
 
+
+
 // app.use(bodyParser.urlencoded({extended:true}));
 app.use(express.json());
 
 app.get("/", (req, res) => {
-  res.status(200).sendFile(path.join(__dirname + "/index.html"));
+  res.status(200).sendFile(path.join(__dirname + "/"+county+"_index.html"));
 });
+
+open("http://localhost:"+port);
 
 app.get("/complete", (req, res) => {
   res.status(200).send('Complete');
@@ -42,7 +51,7 @@ app.post("/submit", (req, res) =>{
 					  description: 'But it is still running. Please wait for file to be appended with \'_complete\' before opening.'
 			});
 	}, (TIMEOUT_VAL-500));
-	scrape(data.start, data.end).then((status) => {
+	scrape(data.start, data.end, county).then((status) => {
 		console.log('Complete at server, sending response');
 		console.log((new Date()).toString());
 		try{

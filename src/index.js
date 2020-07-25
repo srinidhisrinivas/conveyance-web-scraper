@@ -5,11 +5,13 @@ const ExcelWriter = require('./ExcelWriter.js');
 const DateHandler = require('./DateHandler.js');
 const InfoParser = require('./InfoParser.js');
 const Scraper = require('./Scraper.js');
-const CONFIG = require('./ConfigReader.js');
+const DelScraper = require('./DelScraper.js');
+const ConfigReader = require('./ConfigReader.js');
 
 
-async function runCycle(start, end, remainingLinks, remainingDates, finalpath){
+async function runCycle(start, end, remainingLinks, remainingDates, finalpath, county){
 
+	const CONFIG = new ConfigReader(county);
 	let dateHandler = new DateHandler();
 
 	start = dateHandler.incrementDate(new Date(Date.parse(start)));
@@ -27,10 +29,13 @@ async function runCycle(start, end, remainingLinks, remainingDates, finalpath){
 		}
 	}	
 	
-	let excel = new ExcelWriter(start, end);
+	let excel = new ExcelWriter(start, end, county);
 	
-	let scraper = new Scraper();
-	let targetDir = targetFilepath;
+	//let scraper = new Scraper();
+	let scraper;
+	if(county === 'delaware') scraper = new DelScraper();
+	else scraper = new Scraper();
+	let targetDir = CONFIG.USER_CONFIG.TARGET_DIR;
 	const browser = await puppeteer.launch({headless: true});
 	const page = await browser.newPage();
 	let dateList;
@@ -38,7 +43,7 @@ async function runCycle(start, end, remainingLinks, remainingDates, finalpath){
 	if(remainingDates === undefined) dateList = dateHandler.convertDateRangeToList(start, end);
 	else dateList = remainingDates;
 	if(remainingLinks !== undefined){
-		let processedInformation = await scraper.processHyperLinks(page, remainingLinks, infoValidator);
+		let processedInformation = await delScraper.processHyperLinks(page, remainingLinks, infoValidator);
 		if(!Array.isArray(processedInformation)){
 			console.log(JSON.stringify(processedInformation,null,2));
 			if(processedInformation.processed_information.length > 0){
@@ -60,10 +65,13 @@ async function runCycle(start, end, remainingLinks, remainingDates, finalpath){
 	}
 
 	console.log(dateList);
+	if(county === 'delaware') dateList = [0];
 	
 	for(let i = 0; i < dateList.length; i++){
 		let date = dateList[i];
-		let allHyperlinks = await scraper.getParcelIDHyperlinksForDate(page, date);
+		let allHyperlinks;
+		if(county === 'delaware') allHyperlinks = await scraper.getParcelIDsForDateRange(page, start, end);
+		else allHyperlinks = await scraper.getParcelIDHyperlinksForDate(page, date);
 		if(!Array.isArray(allHyperlinks)){
 			// log whatever error occurred
 			// close browser
@@ -95,10 +103,12 @@ async function runCycle(start, end, remainingLinks, remainingDates, finalpath){
 	};
 }
 
-async function run(start, end){
+async function run(start, end, county){
+	const CONFIG = new ConfigReader(county);
 	let remainingDates, remainingLinks, finalpath, lastErroredLink = '', numLastLinkErrors = 0;
+	//let runCycle = require('./'+county+'/runCycle.js');
 	while(true){
-		let returnStatus = await runCycle(start, end, remainingLinks, remainingDates, finalpath);
+		let returnStatus = await runCycle(start, end, remainingLinks, remainingDates, finalpath, county);
 		if(returnStatus.code === CONFIG.DEV_CONFIG.SUCCESS_CODE){
 			
 			// log success
@@ -127,11 +137,6 @@ async function run(start, end){
 	}
 	
 }
-
-const targetStartDate = '04/02/2020';
-const targetEndDate = '04/02/2020';
-const targetFilepath = CONFIG.USER_CONFIG.TARGET_DIR;
-//run(targetStartDate, targetEndDate, targetFilepath);
 
 module.exports = run;
 //console.log(addressParser.parseLocation(' 7926 TRIBUTARY LN, REYNOLDSBURG OH 43068'));
