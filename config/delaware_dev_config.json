@@ -1,0 +1,19 @@
+{
+	"PATH_ERROR_CODE": 0,
+	"SUCCESS_CODE" : 1,
+	"PAGE_ACCESS_ERROR_CODE" : 2,
+	"MAX_LINK_ERRORS" : 1,
+	"MAX_VISIT_ATTEMPTS" : 3,
+	"APP_PORT" : "8000",
+	"COMPLETE_APPEND" : "_complete",
+	"ERROR_APPEND" : "_error",
+	"STREET_ABBR_FILE" : "abbreviations/streetabbreviations.json",
+	"STATE_ABBR_FILE" : "abbreviations/stateabbreviations.json",
+	"SUFF_ABBR_FILE" : "abbreviations/suffabbreviations.json",
+	"UNIT_ABBR_FILE" :"abbreviations/unitabbreviations.json",
+	"RECORDER_TARGET_URL" : "https://cotthosting.com/ohdelaware/User/Login.aspx",
+	"AUDITOR_TARGET_URL" : "http://delaware-auditor-ohio.manatron.com/PropNum.aspx",
+	"POST_RESPONSE_TIMEOUT_MSEC" : 18000000,
+	"ERROR_LOG_FILE" : "logs/delaware_error_log.txt"
+
+}

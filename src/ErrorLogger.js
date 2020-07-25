@@ -1,7 +1,8 @@
-const CONFIG = require('./ConfigReader.js');
+const ConfigReader = require('./ConfigReader.js');
 const fs = require('fs');
 
-function ErrorLogger(){
+function ErrorLogger(county){
+	const CONFIG = new ConfigReader(county);
 	const errorFile = CONFIG.DEV_CONFIG.ERROR_LOG_FILE;
 	this.log = function(message){
 		let date = new Date();
@@ -17,4 +18,4 @@ function ErrorLogger(){
 	}
 }
 
-module.exports = new ErrorLogger();
+module.exports = ErrorLogger;

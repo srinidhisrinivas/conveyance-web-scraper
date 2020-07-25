@@ -1,10 +1,12 @@
 const Excel = require('exceljs');
-const CONFIG = require('./ConfigReader.js');
+const ConfigReader = require('./ConfigReader.js');
 const ERROR_LOGGER = require("./ErrorLogger.js");
 
-let ExcelWriter = function(start, end){
+let ExcelWriter = function(start, end, county){
+	const CONFIG = new ConfigReader(county);
 	this.startDate = start;
 	this.endDate = end;
+	this.county = county;
 	this.writeToFile = async (filepath, information, finalpath) => {
 
 		console.log(finalpath);
@@ -19,7 +21,7 @@ let ExcelWriter = function(start, end){
 			// 			+ (currentDate.getDate() < 10 ? '0' : '') + currentDate.getDate() + '_'
 			// 			+ (currentDate.getHours() < 10 ? '0' : '') + currentDate.getHours() + '_'
 			// 			+ (currentDate.getMinutes() < 10 ? '0' : '') + currentDate.getMinutes() + '.xlsx';
-			let filename = 'Conveyances'+ '_' 
+			let filename = this.county.toUpperCase() + '_' 
 						+ this.startDate.getFullYear()
 						+ (this.startDate.getMonth() < 9 ? '0' : '') + (this.startDate.getMonth() + 1)
 						+ (this.startDate.getDate() < 10 ? '0' : '') + this.startDate.getDate() + '_'

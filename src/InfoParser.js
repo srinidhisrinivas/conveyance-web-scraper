@@ -1,5 +1,6 @@
 const fs = require('fs');
-const CONFIG = require('./ConfigReader.js');
+const ConfigReader = require('./ConfigReader.js');
+const CONFIG = new ConfigReader('franklin');
 const ERROR_LOGGER = require("./ErrorLogger.js");
 
 let InfoParser = function(){

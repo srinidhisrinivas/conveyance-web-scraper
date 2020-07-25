@@ -1,0 +1,10 @@
+{
+	"VALID_CONV_CODES" : ["AM","CO","CE","ED","EE","EN","EX","FD","FE","GD","GE","GW","GX","LE","LW","PD","PE","QC","QE","SE","SU","SW","TD","TE","WD","WE"],
+	"TARGET_DIR" : "C:\\Python37\\Programs\\AuditorScraper\\Excel",
+	"DEFAULT_TARGET_DIR" : "C:\\Python37\\Programs\\AuditorScraper\\Excel",
+	"NAME_FILTER_WORDS" : ["COMPANY", " LLC", " BANK", " TRUST", " INC", "LTD"],
+	"DEFAULT_NAME_FILTER_WORDS" : ["COMPANY", " LLC", " BANK", " TRUST", " INC", "LTD"],
+	"TITLECASE_EXCEPTIONS" : ["po", "llc", "iii", "iv", "ii", "vi", "vii", "viii","ix","tr","cc"],
+	"DEFAULT_TITLECASE_EXCEPTIONS" : ["po", "llc", "iii", "iv", "ii", "vi", "vii", "viii","ix","tr","cc"],
+	"DEFAULT_VALID_CONV_CODES" : ["AM","CO","CE","ED","EE","EN","EX","FD","FE","GD","GE","GW","GX","LE","LW","PD","PE","QC","QE","SE","SU","SW","TD","TE","WD","WE"]
+}
