@@ -31,22 +31,6 @@ let Scraper = function(){
 			});
 		}
 
-		console.log(await page.$$eval(selector, trs => trs.map(tr => {
-	    		const tds = [...tr.getElementsByTagName('td')];
-	    		return tds.map(td => td.outerHTML);
-			})));	
-		if(html){
-			return await page.$$eval(selector, trs => trs.map(tr => {
-	    		const tds = [...tr.getElementsByTagName('td')];
-	    		return tds.map(td => td.outerHTML);
-			}));
-		
-		} else {
-			return await page.$$eval(selector, trs => trs.map(tr => {
-	    		const tds = [...tr.getElementsByTagName('td')];
-	    		return tds.map(td => td.outerHTML);
-			}));		
-		}
 		
 	}
 
@@ -99,7 +83,7 @@ let Scraper = function(){
 					await page.type('input#owner',pageLink);
 					const searchButton = await page.$('button[name=btnSearch]');
 					await searchButton.click();
-					await page.waitForSelector("td[colspan='2'] > table.ui-corner-all");
+					await page.waitForSelector("td[colspan='2'] > table.ui-corner-all", {timeout: CONFIG.DEV_CONFIG.PARCEL_TIMEOUT_MSEC});
 					await page.waitFor(200);
 					const ownerTableData = await this.getTableDataBySelector(page, "td[width='66%'] > table.ui-corner-all > tbody > tr",false);
 					if(ownerTableData.length < 1){

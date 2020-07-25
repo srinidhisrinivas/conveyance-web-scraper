@@ -32,11 +32,12 @@ async function runCycle(start, end, remainingLinks, remainingDates, finalpath){
 	let targetDir = CONFIG.USER_CONFIG.TARGET_DIR;
 	const browser = await puppeteer.launch({headless: true});
 	const page = await browser.newPage();
+	let processedInformation;
 
 	if(remainingLinks !== undefined){
-		let processedInformation = await scraper.processHyperLinks(page, remainingLinks, infoValidator);
+		processedInformation = await scraper.processHyperLinks(page, remainingLinks, infoValidator);
 		if(!Array.isArray(processedInformation)){
-			console.log(JSON.stringify(processedInformation,null,2));
+			// console.log(JSON.stringify(processedInformation,null,2));
 			if(processedInformation.processed_information.length > 0){
 				let currentInfo = processedInformation.processed_information;
 				// currentInfo = currentInfo.filter(e => e.transfer < e.value && validConvCodes.includes(e.conveyanceCode));
@@ -52,39 +53,38 @@ async function runCycle(start, end, remainingLinks, remainingDates, finalpath){
 			// log the error that occurred. Try again, perhaps?
 			// Low priority on this, because errors unlikely to happen here.
 		}
-	}
+	} else {
+		start = dateHandler.formatDate(start);
+		end = dateHandler.formatDate(end);
 
-	
-	start = dateHandler.formatDate(start);
-	end = dateHandler.formatDate(end);
+		console.log(start + ' - ' + end);
 
-	console.log(start + ' - ' + end);
+		start = start.replace(/\//g,'');
+		end = end.replace(/\//g,'');
 
-	start = start.replace(/\//g,'');
-	end = end.replace(/\//g,'');
-
-	let allHyperlinks = await scraper.getParcelIDsForDateRange(page, start, end);
-	
-	if(!Array.isArray(allHyperlinks)){
-		// log whatever error occurred
-		// close browser
-		// return exit code
-	}
-	let processedInformation = await scraper.processHyperLinks(page, allHyperlinks, infoValidator);
-	if(!Array.isArray(processedInformation)){
-		// log whatever error occurred
-		// console.log(JSON.stringify(processedInformation,null,2));
-		if(processedInformation.processed_information.length > 0){
-			let currentInfo = processedInformation.processed_information;
-			// currentInfo = currentInfo.filter(e => e.transfer < e.value && validConvCodes.includes(e.conveyanceCode));
-			finalpath = await excel.writeToFile(targetDir, currentInfo, finalpath);	
-		}
+		allHyperlinks = await scraper.getParcelIDsForDateRange(page, start, end);
 		
-		await browser.close();
-		processedInformation.finalpath = finalpath;
-		return processedInformation;
+		if(!Array.isArray(allHyperlinks)){
+			// log whatever error occurred
+			// close browser
+			// return exit code
+		}
+		let processedInformation = await scraper.processHyperLinks(page, allHyperlinks, infoValidator);
+		if(!Array.isArray(processedInformation)){
+			// log whatever error occurred
+			// console.log(JSON.stringify(processedInformation,null,2));
+			if(processedInformation.processed_information.length > 0){
+				let currentInfo = processedInformation.processed_information;
+				// currentInfo = currentInfo.filter(e => e.transfer < e.value && validConvCodes.includes(e.conveyanceCode));
+				finalpath = await excel.writeToFile(targetDir, currentInfo, finalpath);	
+			}
+			
+			await browser.close();
+			processedInformation.finalpath = finalpath;
+			return processedInformation;
+		}	
 	}
-	// processedInformation = processedInformation.filter(e => (e.transfer < e.value) && validConvCodes.includes(e.conveyanceCode));
+
 	finalpath = await excel.writeToFile(targetDir, processedInformation, finalpath)
 	
 	await browser.close();
