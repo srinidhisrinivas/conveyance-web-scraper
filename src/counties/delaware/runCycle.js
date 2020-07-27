@@ -32,7 +32,7 @@ async function runCycle(start, end, remainingLinks, remainingDates, finalpath){
 	let targetDir = CONFIG.USER_CONFIG.TARGET_DIR;
 	const browser = await puppeteer.launch({headless: true});
 	const page = await browser.newPage();
-	let processedInformation;
+	let processedInformation = [];
 
 	if(remainingLinks !== undefined){
 		processedInformation = await scraper.processHyperLinks(page, remainingLinks, infoValidator);
@@ -48,7 +48,7 @@ async function runCycle(start, end, remainingLinks, remainingDates, finalpath){
 			return processedInformation;
 		}
 		// processedInformation = processedInformation.filter(e => e.transfer < e.value && validConvCodes.includes(e.conveyanceCode));
-		finalpath = await excel.writeToFile(targetDir, processedInformation, finalpath);
+		// finalpath = await excel.writeToFile(targetDir, processedInformation, finalpath);
 		if(finalpath === CONFIG.DEV_CONFIG.PATH_ERROR_CODE){
 			// log the error that occurred. Try again, perhaps?
 			// Low priority on this, because errors unlikely to happen here.
@@ -62,16 +62,14 @@ async function runCycle(start, end, remainingLinks, remainingDates, finalpath){
 		start = start.replace(/\//g,'');
 		end = end.replace(/\//g,'');
 
-		//allHyperlinks = await scraper.getParcelIDsForDateRange(page, start, end);
-
-		allHyperlinks = ['2002000105500'];
+		allHyperlinks = await scraper.getParcelIDsForDateRange(page, start, end);
 		
 		if(!Array.isArray(allHyperlinks)){
 			// log whatever error occurred
 			// close browser
 			// return exit code
 		}
-		let processedInformation = await scraper.processHyperLinks(page, allHyperlinks, infoValidator);
+		processedInformation = await scraper.processHyperLinks(page, allHyperlinks, infoValidator);
 		if(!Array.isArray(processedInformation)){
 			// log whatever error occurred
 			// console.log(JSON.stringify(processedInformation,null,2));

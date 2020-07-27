@@ -49,6 +49,7 @@ let ExcelWriter = function(start, end, county){
 			sheet = workbook.getWorksheet(SHEET_NAME);
 		}
 		
+		
 		for(let i = 0; i < information.length; i++){
 			let conveyance = information[i];
 			/*
