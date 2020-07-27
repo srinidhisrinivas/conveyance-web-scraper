@@ -11,7 +11,7 @@ const ConfigReader = require('./ConfigReader.js');
 
 async function run(start, end, county){
 	const CONFIG = new ConfigReader(county);
-	let remainingDates, remainingLinks, finalpath, lastErroredLink = '', numLastLinkErrors = 0;
+	let remainingDates, remainingLinks, finalpath, lastErroredLink = '', numLastLinkErrors = 1;
 	let runCycle = require('./counties/'+county+'/runCycle.js');
 	while(true){
 		let returnStatus = await runCycle(start, end, remainingLinks, remainingDates, finalpath);
@@ -26,15 +26,16 @@ async function run(start, end, county){
 		remainingDates = returnStatus.remaining_dates;
 		let erroredLink = returnStatus.remaining_links[0];
 		// If link causes error more than once
+
 		if(erroredLink === lastErroredLink){
 			numLastLinkErrors++;
 			if(numLastLinkErrors > CONFIG.DEV_CONFIG.MAX_LINK_ERRORS){
 				console.log(erroredLink + ' caused error more than ' + CONFIG.DEV_CONFIG.MAX_LINK_ERRORS + ' time. Skipping.');
 				returnStatus.remaining_links.shift();
-				numLastLinkErrors = 0;
+				numLastLinkErrors = 1;
 			}
 		} else {
-			numLastLinkErrors = 0;
+			numLastLinkErrors = 1;
 		}
 		lastErroredLink = erroredLink;
 		remainingLinks = returnStatus.remaining_links;

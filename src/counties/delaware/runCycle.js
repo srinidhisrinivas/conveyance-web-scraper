@@ -62,7 +62,9 @@ async function runCycle(start, end, remainingLinks, remainingDates, finalpath){
 		start = start.replace(/\//g,'');
 		end = end.replace(/\//g,'');
 
-		allHyperlinks = await scraper.getParcelIDsForDateRange(page, start, end);
+		//allHyperlinks = await scraper.getParcelIDsForDateRange(page, start, end);
+
+		allHyperlinks = ['2002000105500'];
 		
 		if(!Array.isArray(allHyperlinks)){
 			// log whatever error occurred

@@ -138,10 +138,11 @@ let Scraper = function(){
 			var transferTableData = await this.getTableDataBySelector(page, "td[colspan='2'] > table.ui-corner-all > tbody > tr",false);
 			transferTableData = transferTableData.filter(row => row.includes('Total'))[0];
 			transferTableData = transferTableData.slice(2);
-			let transferAmount = transferTableData[1];
+			
+			let transferAmount = transferTableData[3];
 			transferAmount = parseInt(transferAmount.replace(/[,\$]/g, ''));
 
-			let marketValue = transferTableData[3];
+			let marketValue = transferTableData[1];
 			marketValue = parseInt(marketValue.replace(/[,\$]/g, ''));
 
 			let currentInfo = {
