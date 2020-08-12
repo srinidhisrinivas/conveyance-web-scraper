@@ -1,3 +1,11 @@
+Wed Aug 12 2020 19:06:22 GMT-0400 (Eastern Daylight Time)
+
+Error: Navigation failed because browser has disconnected!
+
+Wed Aug 12 2020 19:05:51 GMT-0400 (Eastern Daylight Time)
+
+Error: No node found for selector: input[name=StartDate]
+
 Tue Jul 28 2020 21:38:58 GMT-0400 (Eastern Daylight Time)
 
 ReferenceError: scarper is not defined
