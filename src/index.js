@@ -9,12 +9,22 @@ const InfoParser = require('./InfoParser.js');
 const ConfigReader = require('./ConfigReader.js');
 
 
-async function run(start, end, county){
+async function run(start, end, county, headless){
 	const CONFIG = new ConfigReader(county);
 	let remainingDates, remainingLinks, finalpath, lastErroredLink = '', numLastLinkErrors = 1;
 	let runCycle = require('./counties/'+county+'/runCycle.js');
+	headless = (headless === 'true');
 	while(true){
-		let returnStatus = await runCycle(start, end, remainingLinks, remainingDates, finalpath);
+		// remainingLinks = [
+		//   '612-0120-0209-00',
+		//   '612-0120-0302-00',
+		//   '612-0131-0111-00',
+		//   '651-0016-0026-00',
+		//   '651-0039-0150-00',
+		//   '651-0048-0047-00'
+		// ]; 
+
+		let returnStatus = await runCycle(start, end, remainingLinks, remainingDates, finalpath, headless);
 		if(returnStatus.code === CONFIG.DEV_CONFIG.SUCCESS_CODE){
 			
 			// log success
@@ -45,6 +55,10 @@ async function run(start, end, county){
 	
 }
 
+// async function test(){
+// 	await run('01/01/2020','01/01/2020','hamilton', 'false');
+// }
+// test();
 module.exports = run;
 //console.log(addressParser.parseLocation(' 7926 TRIBUTARY LN, REYNOLDSBURG OH 43068'));
 //parseAddress( '2312 EAST 5TH AVE, COLUMBUS, OH 43219');

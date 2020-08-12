@@ -11,7 +11,7 @@
 	"STATE_ABBR_FILE" : "abbreviations/stateabbreviations.json",
 	"SUFF_ABBR_FILE" : "abbreviations/suffabbreviations.json",
 	"UNIT_ABBR_FILE" :"abbreviations/unitabbreviations.json",
-	"FRANKLIN_TARGET_URL" : "https://apps.franklincountyauditor.com/dailyconveyance",
+	"FRANKLIN_TARGET_URL" : "https://wedge.hcauditor.org/",
 	"POST_RESPONSE_TIMEOUT_MSEC" : 18000000,
 	"ERROR_LOG_FILE" : "logs/franklin_error_log.txt"
 

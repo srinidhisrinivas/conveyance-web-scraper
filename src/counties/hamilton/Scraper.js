@@ -3,10 +3,9 @@ const puppeteer = require('puppeteer');
 const ConfigReader = require('../../ConfigReader.js');
 const ErrorLogger = require("../../ErrorLogger.js");
 
-const ERROR_LOGGER = new ErrorLogger('delaware');
-const CONFIG = new ConfigReader('delaware');
+const ERROR_LOGGER = new ErrorLogger('hamilton');
+const CONFIG = new ConfigReader('hamilton');
 
-const recorderAddress = CONFIG.DEV_CONFIG.RECORDER_TARGET_URL;
 const auditorAddress = CONFIG.DEV_CONFIG.AUDITOR_TARGET_URL;
 
 let Scraper = function(){
@@ -80,19 +79,32 @@ let Scraper = function(){
 			for(visitAttemptCount = 0; visitAttemptCount < CONFIG.DEV_CONFIG.MAX_VISIT_ATTEMPTS; visitAttemptCount++){
 				try{
 					await page.goto(auditorAddress);
-					await page.type('input#owner',pageLink);
-					const searchButton = await page.$('button[name=btnSearch]');
-					await searchButton.click();
-					await page.waitForSelector("td[colspan='2'] > table.ui-corner-all", {timeout: CONFIG.DEV_CONFIG.PARCEL_TIMEOUT_MSEC});
+					await page.waitForSelector('input#search_radio_parcel_id');
+
+					const parcelButton = await page.$('input#search_radio_parcel_id');
+					parcelButton.click();
+
+					await page.waitForSelector('div#number-criteria');
+
+					await page.click('input#parcel_number', {clickCount: 3});					
+
+					await page.type("input#parcel_number", pageLink);
+					await page.evaluate(() => {
+						document.querySelector("form#search_by_parcel_id button[type='submit']").click();
+					});
+
+
+					await page.waitForSelector("table#property_information", {timeout: CONFIG.DEV_CONFIG.PARCEL_TIMEOUT_MSEC});
 					await page.waitFor(200);
-					const ownerTableData = await this.getTableDataBySelector(page, "td[width='66%'] > table.ui-corner-all > tbody > tr",false);
-					if(ownerTableData.length < 1){
+
+					const taxTableData = await this.getTableDataBySelector(page, "table#property_information",false);
+					if(taxTableData.length < 1){
 						throw "Owner Table Not Found";
 					}
 					
 				}
 				catch(e){
-					// console.log(e);
+					console.log(e);
 					console.log('Unable to visit ' + pageLink + '. Attempt #' + visitAttemptCount);
 					continue;
 				}
@@ -112,20 +124,23 @@ let Scraper = function(){
 
 			// const parcelIDString = (await (await (await page.$('.DataletHeaderTopLeft')).getProperty('innerText')).jsonValue());
 			// const parcelID = parcelIDString.substring(parcelIDString.indexOf(':')+2);
-
-			const ownerTableData = await this.getTableDataBySelector(page, "td[width='66%'] > table.ui-corner-all > tbody > tr",false);
-			//console.log('Owner Table Data:');
 			
-			//console.log(ownerTableData);
-			let ownerNames = await this.getInfoFromTableByRowHeader(ownerTableData, 'Owner Name', ',');
+			let ownerTableData = await this.getTableDataBySelector(page, "table#property_information",false);
+			ownerTableData = ownerTableData[0];
+			ownerTableData = ownerTableData.filter(el => el.includes("Owner"));
+			ownerTableData = ownerTableData[0].split('\n');
+			ownerTableData.shift();
+			ownerTableData.pop();
+			console.log('Owner Table Data:');
+			
+			// console.log(ownerTableData);
+			
+			let ownerNames = ownerTableData[0];
 			ownerNames = infoParser.parseOwnerNames(ownerNames);
 
-			// console.log(ownerNames);
-			let ownerAddress = await this.getInfoFromTableByRowHeader(ownerTableData, 'Owner Address',',');
+			let ownerAddress = ownerTableData.slice(1).join(',');
 			ownerAddress = ownerAddress.replace(/\n/g,',');
 			ownerAddress = infoParser.parseAddress(ownerAddress);
-			// console.log('Street: ' + ownerAddress.street);
-
 			
 			if(ownerAddress.street === ''){
 				let remainingLinks = hyperlinks.slice(i);
@@ -136,14 +151,17 @@ let Scraper = function(){
 				};
 			}
 
-			var transferTableData = await this.getTableDataBySelector(page, "td[colspan='2'] > table.ui-corner-all > tbody > tr",false);
-			transferTableData = transferTableData.filter(row => row.includes('Total'))[0];
-			transferTableData = transferTableData.slice(2);
+			let taxTableData = await this.getTableDataBySelector(page, "table#tax-credit-value-summary",false);
+			taxTableData = taxTableData[0];
+			let marketValue = taxTableData[taxTableData.indexOf("Market Total Value") + 1];
+			console.log(marketValue);
 			
-			let transferAmount = transferTableData[3];
+			let propertyTable = await this.getTableDataBySelector(page, "table[summary='Appraisal Summary']", false); 
+			propertyTable = propertyTable[0];
+			let transferAmount = propertyTable[propertyTable.indexOf("Last Sale Amount") + 1];
+			console.log(transferAmount);
+			
 			transferAmount = parseInt(transferAmount.replace(/[,\$]/g, ''));
-
-			let marketValue = transferTableData[1];
 			marketValue = parseInt(marketValue.replace(/[,\$]/g, ''));
 
 			let currentInfo = {
@@ -178,56 +196,54 @@ let Scraper = function(){
 
 	this.getParcelIDsForDateRange = async function(page, start, end){
 
-		await page.goto(recorderAddress);
-		const signIn = await page.$('#ctl00_cphMain_blkLogin_btnGuestLogin');
-		await signIn.click();
-		await page.waitForNavigation();
-		const acknowledge = await page.$('#ctl00_btnEmergencyMessagesClose');
-		await acknowledge.click();
-		await page.waitFor(500);
+		await page.goto(auditorAddress);
+		await page.waitForSelector('input#search_radio_sales');
+
+		const salesButton = await page.$('input#search_radio_sales');
+		salesButton.click();
+
+		await page.waitForSelector('div#sales-criteria');
 		
-		await page.goto('https://cotthosting.com/ohdelaware/LandRecords/protected/v4/SrchDate.aspx');
 
-		await page.select('select#ctl00_cphMain_tcMain_tpNewSearch_ucSrchDates_lbKindGroups', '73,74,76,77,78,79,61,58,51,52,53,41,7,8,9,26,29,30,32,91,92,93,94,95,96,97,98,99,88,89,101,102,104,105,106,111,122,70,126,127,128,129,130,132,138,161,183,192,193,206,217,220,226,224,240,245,246,255,256,271,277,303,304,296,317,318,314,315,755,326,323,324,347,348');
-
-		const from = await page.$('input#ctl00_cphMain_tcMain_tpNewSearch_ucSrchDates_txtFiledFrom');
+		const from = await page.$('input#sale_date_low');
 		await from.click();
 		await page.waitFor(500);
-		await page.type('input#ctl00_cphMain_tcMain_tpNewSearch_ucSrchDates_txtFiledFrom', start, {delay:300});
+		await page.type('input#sale_date_low', start, {delay:300});
+		
+		// const to = await page.$('input#sale_date_high');
+		// await to.click();
+		await page.keyboard.press("Tab");
+		await page.keyboard.press("Backspace");
+
+		await page.type('input#sale_date_high', end, {delay:300});
 		await page.keyboard.press("Tab");
 		
+		await page.waitFor(500);
+
+		await page.evaluate(() => {
+			document.querySelector("div#sales-criteria button[type='submit']").click();
+		});
 		
-		const to = await page.$('input#ctl00_cphMain_tcMain_tpNewSearch_ucSrchDates_txtFiledThru')
-		
-		await page.type('input#ctl00_cphMain_tcMain_tpNewSearch_ucSrchDates_txtFiledThru', end, {delay:300});
-		await page.keyboard.press("Tab");
-		
-		const searchButton = await page.$('#ctl00_cphMain_tcMain_tpNewSearch_ucSrchDates_btnSearch');
-		await page.waitFor(1000);
-		await searchButton.click();
-		
-		await page.waitForSelector("table[class='cottPagedGridView']", {timeout: 0});
+		await page.waitForSelector("table#search-results", {timeout: 0});
+
 		let allHyperlinks = [];
 		let pageNum=1;	
 
 		while(true){
 	  		await page.waitFor(500);
 
-			let resultTableData = await this.getTableDataBySelector(page, "table.cottPagedGridView > tbody > tr",false);
+			let resultTableData = await this.getTableDataBySelector(page, "table#search-results tr",false);
 			
 			if(!resultTableData) continue;
 			resultTableData.shift();	
-			//resultTabelData = resultTableData.filter(row => row.some(e => e.includes('DEED')));
-			resultTableData = resultTableData.filter(row => row.some(e => e.includes('Parcel')));
-			resultTableData = resultTableData.map(row => row.filter(e => e.includes("DEED") || e.includes("Parcel")));
-			resultTableData = resultTableData.filter(row => row[0] === 'DEED');
-			resultTableData = resultTableData.map(row => row[row.length - 1]);
-			resultTableData = resultTableData.map(row => {
-				var n = row.split(' ');
-				return n[n.length - 1];
-			})
-			resultTableData = resultTableData.filter(row => !isNaN(row));
-			
+
+			resultTableData = resultTableData.filter(row => {
+				transferAmount = row[row.length-1].replace(/[,\$]/g, ''); 
+				
+				return transferAmount !== "0";
+			});
+			resultTableData = resultTableData.map(row => row[0]);
+					
 			hyperlinks = resultTableData;
 			console.log('Page num '+pageNum);
 			console.log(hyperlinks);
@@ -240,12 +256,14 @@ let Scraper = function(){
 			}
 			pageNum++;
 
-			const nextButton = await page.$('input#ctl00_cphMain_tcMain_tpInstruments_ucInstrumentsGridV2_cpInstruments_Top_ibResultsNextPage');
+			const nextButton = await page.$('a#search-results_next');
+			const nextClass = await page.$eval('a#search-results_next', e => e.getAttribute('class'));
+			// console.log(nextClass);
 			// console.log(await (await nextButton.getProperty('outerHTML')).jsonValue());
-			if(!nextButton) break;
+			if(nextClass.includes('disabled')) break;
 
 			await nextButton.click();
-			await page.waitFor(3000); // TODO: Wait for update to happen
+			await page.waitFor(1500); // TODO: Wait for update to happen
 
 		}
 		console.log(allHyperlinks);

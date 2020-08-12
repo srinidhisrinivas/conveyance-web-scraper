@@ -4,7 +4,7 @@ const Scraper = require('./Scraper.js');
 const ExcelWriter = require('../../ExcelWriter.js');
 const puppeteer = require('puppeteer');
 
-async function runCycle(start, end, remainingLinks, remainingDates, finalpath){
+async function runCycle(start, end, remainingLinks, remainingDates, finalpath, headless){
 
 	const county = 'delaware';
 	const CONFIG = new ConfigReader(county);
@@ -18,11 +18,7 @@ async function runCycle(start, end, remainingLinks, remainingDates, finalpath){
 		let valid = false;
 		if(info.transfer < info.value && info.transfer > 0) valid = true;
 		if(processedInformation.some(e => e.owner === info.owner)) valid = false;
-		if('conveyance_code' in info){
-			return valid && validConvCodes.includes(info.conveyance_code);
-		} else {
-			return valid;
-		}
+		
 	}	
 	
 	let excel = new ExcelWriter(start, end, county);
@@ -30,7 +26,7 @@ async function runCycle(start, end, remainingLinks, remainingDates, finalpath){
 	//let scraper = new Scraper();
 	let scraper = new Scraper();
 	let targetDir = CONFIG.USER_CONFIG.TARGET_DIR;
-	const browser = await puppeteer.launch({headless: true});
+	const browser = await puppeteer.launch({headless: headless});
 	const page = await browser.newPage();
 	let processedInformation = [];
 

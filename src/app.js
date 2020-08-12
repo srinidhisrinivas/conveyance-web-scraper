@@ -11,6 +11,7 @@ const open = require("open");
 
 const args = process.argv.slice(2);
 const county = args[0];
+const headless = args[1];
 const CONFIG = new ConfigReader(county);
 const ERROR_LOGGER = new ErrorLogger(county);
 
@@ -51,7 +52,7 @@ app.post("/submit", (req, res) =>{
 					  description: 'But it is still running. Please wait for file to be appended with \'_complete\' before opening.'
 			});
 	}, (TIMEOUT_VAL-500));
-	scrape(data.start, data.end, county).then((status) => {
+	scrape(data.start, data.end, county, headless).then((status) => {
 		console.log('Complete at server, sending response');
 		console.log((new Date()).toString());
 		try{
