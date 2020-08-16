@@ -18,7 +18,7 @@ async function runCycle(start, end, remainingLinks, remainingDates, finalpath, h
 		let valid = false;
 		if(info.transfer < info.value && info.transfer > 0) valid = true;
 		if(processedInformation.some(e => e.owner === info.owner)) valid = false;
-		
+		return valid;
 	}	
 	
 	let excel = new ExcelWriter(start, end, county);

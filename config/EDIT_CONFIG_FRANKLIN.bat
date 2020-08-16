@@ -14,7 +14,7 @@ goto :EOF
 
 <HTA:APPLICATION SCROLL="no" SYSMENU="no" >
 
-<TITLE>Edit User Config</TITLE>
+<TITLE>Edit User Config - Franklin</TITLE>
 <SCRIPT language="JavaScript">
 window.resizeTo(500,660);
 
@@ -25,7 +25,7 @@ function closeHTA(){
 function ReadFile(){
 	
    var JSON = new ActiveXObject("Chilkat_9_5_0.JsonObject");
-	JSON.LoadFile("user_config.json");
+	JSON.LoadFile("franklin_user_config.json");
    return JSON;
 }
 function load(){
@@ -78,7 +78,7 @@ function restore(){
    JSON.Delete("TITLECASE_EXCEPTIONS");
    JSON.AddArrayCopyAt(-1,"TITLECASE_EXCEPTIONS", stringToJarr(exceptionString.GetAsString()));
 
-   JSON.WriteFile("user_config.json");  
+   JSON.WriteFile("franklin_user_config.json");  
    closeHTA();
    return; 
 }
@@ -112,7 +112,7 @@ function update(){
       JSON.Delete("TITLECASE_EXCEPTIONS");
       JSON.AddArrayCopyAt(-1,"TITLECASE_EXCEPTIONS", exceptionWords);
       
-      JSON.WriteFile("user_config.json");   
+      JSON.WriteFile("franklin_user_config.json");   
    }
    closeHTA();
    return;   

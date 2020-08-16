@@ -16,8 +16,12 @@ async function runCycle(start, end, remainingLinks, remainingDates, finalpath, h
 	function infoValidator(info, processedInformation){
 		const validConvCodes = CONFIG.USER_CONFIG.VALID_CONV_CODES;	
 		let valid = false;
+		// console.log(info.transfer);
+		// console.log(info.value);
+		// console.log(info.transfer < info.value);
 		if(info.transfer < info.value && info.transfer > 0) valid = true;
 		if(processedInformation.some(e => e.owner === info.owner)) valid = false;
+		return valid;
 		
 	}	
 	
@@ -59,6 +63,12 @@ async function runCycle(start, end, remainingLinks, remainingDates, finalpath, h
 		end = end.replace(/\//g,'');
 
 		allHyperlinks = await scraper.getParcelIDsForDateRange(page, start, end);
+		if(allHyperlinks.length === 0){
+			return {
+				code: CONFIG.DEV_CONFIG.RESULTS_NOT_FOUND_ERROR_CODE,
+				remaining_links: ['No data']
+			};
+		}
 		
 		if(!Array.isArray(allHyperlinks)){
 			// log whatever error occurred

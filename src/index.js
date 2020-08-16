@@ -30,27 +30,37 @@ async function run(start, end, county, headless){
 			// log success
 			console.log('Success');
 			return returnStatus; 
-		}
-		// log error
-		console.log(JSON.stringify(returnStatus,null,2));
-		remainingDates = returnStatus.remaining_dates;
-		let erroredLink = returnStatus.remaining_links[0];
-		// If link causes error more than once
-
-		if(erroredLink === lastErroredLink){
+		} else if(returnStatus.code === CONFIG.DEV_CONFIG.RESULTS_NOT_FOUND_ERROR_CODE){
+			console.log(JSON.stringify(returnStatus,null,2));
 			numLastLinkErrors++;
 			if(numLastLinkErrors > CONFIG.DEV_CONFIG.MAX_LINK_ERRORS){
-				console.log(erroredLink + ' caused error more than ' + CONFIG.DEV_CONFIG.MAX_LINK_ERRORS + ' time. Skipping.');
-				returnStatus.remaining_links.shift();
-				numLastLinkErrors = 1;
+				console.log('Data not found after ' + CONFIG.DEV_CONFIG.MAX_LINK_ERRORS + ' attempts. Aborting.');
+				throw "Data not found!";
+				break;
 			}
 		} else {
-			numLastLinkErrors = 1;
+			console.log(JSON.stringify(returnStatus,null,2));	
+			remainingDates = returnStatus.remaining_dates;
+			let erroredLink = returnStatus.remaining_links[0];
+			// If link causes error more than once
+
+			if(erroredLink === lastErroredLink){
+				numLastLinkErrors++;
+				if(numLastLinkErrors > CONFIG.DEV_CONFIG.MAX_LINK_ERRORS){
+					console.log(erroredLink + ' caused error more than ' + CONFIG.DEV_CONFIG.MAX_LINK_ERRORS + ' time. Skipping.');
+					returnStatus.remaining_links.shift();
+					numLastLinkErrors = 1;
+				}
+			} else {
+				numLastLinkErrors = 1;
+			}
+			lastErroredLink = erroredLink;
+			remainingLinks = returnStatus.remaining_links;
+			finalpath = returnStatus.finalpath;
+			console.log('Failed. See above error. Trying again.');
 		}
-		lastErroredLink = erroredLink;
-		remainingLinks = returnStatus.remaining_links;
-		finalpath = returnStatus.finalpath;
-		console.log('Failed. See above error. Trying again.');
+		// log error
+		
 	}
 	
 }
