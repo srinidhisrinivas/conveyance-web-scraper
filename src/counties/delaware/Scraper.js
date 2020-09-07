@@ -193,6 +193,9 @@ let Scraper = function(){
 		const from = await page.$('input#ctl00_cphMain_tcMain_tpNewSearch_ucSrchDates_txtFiledFrom');
 		await from.click();
 		await page.waitFor(500);
+		await page.type('input#ctl00_cphMain_tcMain_tpNewSearch_ucSrchDates_txtFiledFrom', '01012020', {delay: 300});
+		await page.click('input#ctl00_cphMain_tcMain_tpNewSearch_ucSrchDates_txtFiledFrom', {clickCount: 3});
+		await page.keyboard.press("Backspace");
 		await page.type('input#ctl00_cphMain_tcMain_tpNewSearch_ucSrchDates_txtFiledFrom', start, {delay:300});
 		await page.keyboard.press("Tab");
 		
@@ -206,7 +209,9 @@ let Scraper = function(){
 		await page.waitFor(1000);
 		await searchButton.click();
 		
-		await page.waitForSelector("table[class='cottPagedGridView']", {timeout: 0});
+		await page.waitForSelector("table.cottPagedGridView tr", {timeout: CONFIG.DEV_CONFIG.RESULTS_TIMEOUT_MSEC});
+		// const table = await page.$("table.cottPagedGridView tr");
+		// console.log(table);
 		let allHyperlinks = [];
 		let pageNum=1;	
 

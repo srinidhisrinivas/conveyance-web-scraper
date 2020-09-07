@@ -105,7 +105,7 @@ let Scraper = function(){
 					
 				}
 				catch(e){
-					console.log(e);
+					// console.log(e);
 					console.log('Unable to visit ' + pageLink + '. Attempt #' + visitAttemptCount);
 					continue;
 				}
@@ -209,18 +209,32 @@ let Scraper = function(){
 
 				await page.waitForSelector('div#sales-criteria');
 				
-
-				const from = await page.$('input#sale_date_low');
-				await from.click();
+				const low = await page.$('input#sale_price_low');
+				await low.click();
 				await page.waitFor(500);
-				await page.type('input#sale_date_low', start, {delay:300});
+				await page.type('input#sale_price_low', '50000', {delay:300});
 				
 				// const to = await page.$('input#sale_date_high');
 				// await to.click();
 				await page.keyboard.press("Tab");
 				await page.keyboard.press("Backspace");
 
+				await page.type('input#sale_price_high', '10000000', {delay:300});
+				// await page.keyboard.press("Tab");
+
+				const from = await page.$('input#sale_date_low');
+				await from.click();
+				await page.waitFor(500);
+				await page.type('input#sale_date_low', start, {delay:300});
+				
+				const to = await page.$('input#sale_date_high');
+				await to.click();
 				await page.type('input#sale_date_high', end, {delay:300});
+
+				await page.click('input#sale_date_high', {clickCount: 3});
+				await page.keyboard.press("Backspace");
+				await page.type('input#sale_date_high', end, {delay:300});
+								
 				await page.keyboard.press("Tab");
 				
 				await page.waitFor(500);
@@ -232,7 +246,7 @@ let Scraper = function(){
 				await page.waitForSelector("table#search-results", {timeout: 0});
 				//await page.screenshot({path: 'screenshot2.png'});
 			} catch(e){
-				console.log(e);
+				// console.log(e);
 				console.log('Unable to visit auditor page. Attempt #' + visitAttemptCount);
 				continue;
 			}
