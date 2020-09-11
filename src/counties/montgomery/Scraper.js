@@ -3,10 +3,8 @@ const puppeteer = require('puppeteer');
 const ConfigReader = require('../../ConfigReader.js');
 const ErrorLogger = require("../../ErrorLogger.js");
 
-const ERROR_LOGGER = new ErrorLogger('hamilton');
-const CONFIG = new ConfigReader('hamilton');
-
-const auditorAddress = CONFIG.DEV_CONFIG.AUDITOR_TARGET_URL;
+const ERROR_LOGGER = new ErrorLogger('montgomery');
+const CONFIG = new ConfigReader('montgomery');
 
 let Scraper = function(){
 	this.getTableDataBySelector = async function(page, selector, html){
@@ -39,19 +37,21 @@ let Scraper = function(){
 		for(let i = 0; i < table.length; i++){
 			let row = table[i];
 			let rowHeader = row[0].trim();
+			
 			if(inTargetHeader){
 				if(rowHeader === ''){
-					info += delimiter + ' ' + row[row.length - 1];
+					if(!row[row.length - 1].includes("LIEN") && !row[row.length - 1].includes("SOLD")) info += delimiter + ' ' + row[row.length - 1];
 				} else {
 					inTargetHeader = false;
 					break;
 				}
 			} 
-			else if(rowHeader === header){
+			else if(rowHeader.includes(header)){
 				inTargetHeader = true;
 				info += row[row.length-1];
 			} 
 		}
+		
 		return info;
 	}
 	this.getInfoFromTableByColumnHeader = async function(table, header, rowNum){
@@ -78,28 +78,26 @@ let Scraper = function(){
 			let visitAttemptCount;
 			for(visitAttemptCount = 0; visitAttemptCount < CONFIG.DEV_CONFIG.MAX_VISIT_ATTEMPTS; visitAttemptCount++){
 				try{
-					await page.goto(auditorAddress);
-					await page.waitForSelector('input#search_radio_parcel_id');
-					await page.waitFor(150);
-					const parcelButton = await page.$('input#search_radio_parcel_id');
-					parcelButton.click();
+					await page.goto(CONFIG.DEV_CONFIG.AUDITOR_PARCEL_URL);
 
-					await page.waitForSelector('div#number-criteria');
-					await page.waitFor(150);
+					await page.waitForSelector("input#inpParid");
+					await page.click('input#inpParid', {clickCount: 3});					
+					await page.type('input#inpParid', pageLink);
+					const searchButton = await page.$('button#btSearch');
+					await searchButton.click();
+					
+					await page.waitForSelector('tr.SearchResults', {timeout: CONFIG.DEV_CONFIG.SEARCH_TIMEOUT_MSEC});
+					await page.waitFor(200);
 
-					await page.click('input#parcel_number', {clickCount: 3});					
+					await page.click("tr.SearchResults");
+					await page.waitFor(200);
 
-					await page.type("input#parcel_number", pageLink);
-					await page.evaluate(() => {
-						document.querySelector("form#search_by_parcel_id button[type='submit']").click();
-					});
-
-
-					await page.waitForSelector("table#property_information", {timeout: CONFIG.DEV_CONFIG.PARCEL_TIMEOUT_MSEC});
-					await page.waitFor(150);
-
-					const taxTableData = await this.getTableDataBySelector(page, "table#property_information",false);
-					if(taxTableData.length < 1){
+					await page.waitForSelector("table#Mailing", {timeout: CONFIG.DEV_CONFIG.PARCEL_TIMEOUT_MSEC});
+					await page.waitFor(200);
+					
+					const ownerTableData = await this.getTableDataBySelector(page, "table#Mailing tr",false);
+					
+					if(ownerTableData.length < 1){
 						throw "Owner Table Not Found";
 					}
 					
@@ -126,21 +124,18 @@ let Scraper = function(){
 			// const parcelIDString = (await (await (await page.$('.DataletHeaderTopLeft')).getProperty('innerText')).jsonValue());
 			// const parcelID = parcelIDString.substring(parcelIDString.indexOf(':')+2);
 			
-			let ownerTableData = await this.getTableDataBySelector(page, "table#property_information",false);
-			ownerTableData = ownerTableData[0];
-			ownerTableData = ownerTableData.filter(el => el.includes("Owner"));
-			ownerTableData = ownerTableData[0].split('\n');
-			ownerTableData.shift();
-			ownerTableData.pop();
+			const ownerTableData = await this.getTableDataBySelector(page, "table#Mailing tr",false);
 			// console.log('Owner Table Data:');
-			
 			// console.log(ownerTableData);
-			
-			let ownerNames = ownerTableData[0];
+			let ownerNames = await this.getInfoFromTableByRowHeader(ownerTableData, 'Name', '');
 			ownerNames = infoParser.parseOwnerNames(ownerNames);
 
-			let ownerAddress = ownerTableData.slice(1).join(',');
-			ownerAddress = ownerAddress.replace(/\n/g,',');
+			let ownerAddress = await this.getInfoFromTableByRowHeader(ownerTableData, 'Mailing Address','');	
+			let zipLine = await this.getInfoFromTableByRowHeader(ownerTableData, 'City, State, Zip','');
+			zipLine = zipLine.replace(/,/g,'');
+			zipLine = zipLine.replace(/(?<=[0-9])((\s)(?=[0-9]))/g,'-');
+			ownerAddress += ',' + zipLine
+			
 			ownerAddress = infoParser.parseAddress(ownerAddress);
 			
 			if(ownerAddress.street === ''){
@@ -152,15 +147,16 @@ let Scraper = function(){
 				};
 			}
 
-			let taxTableData = await this.getTableDataBySelector(page, "table#tax-credit-value-summary",false);
-			taxTableData = taxTableData[0];
-			let marketValue = taxTableData[taxTableData.indexOf("Market Total Value") + 1];
-			// console.log(marketValue);
+			let saleTableData = await this.getTableDataBySelector(page, "table#Sales tr",false);
+			saleTableData.shift();
+			saleTableData.pop();
 			
-			let propertyTable = await this.getTableDataBySelector(page, "table[summary='Appraisal Summary']", false); 
-			propertyTable = propertyTable[0];
-			let transferAmount = propertyTable[propertyTable.indexOf("Last Sale Amount") + 1];
-			// console.log(transferAmount);
+			let transferAmount = saleTableData[saleTableData.length - 1][1];
+			
+			let marketTableData = await this.getTableDataBySelector(page, "table#Values tr",false);
+			marketTableData = marketTableData.filter(row => row.includes('Total'))[0];
+			let marketValue = marketTableData[marketTableData.length - 1];
+			
 			
 			transferAmount = parseInt(transferAmount.replace(/[,\$]/g, ''));
 			marketValue = parseInt(marketValue.replace(/[,\$]/g, ''));
@@ -200,50 +196,39 @@ let Scraper = function(){
 		let visitAttemptCount;
 		for(visitAttemptCount = 0; visitAttemptCount < CONFIG.DEV_CONFIG.MAX_VISIT_ATTEMPTS; visitAttemptCount++){
 			try{
-				await page.goto(auditorAddress);
-				await page.waitForSelector('input#search_radio_sales');
-				await page.waitFor(500);
+				await page.goto(CONFIG.DEV_CONFIG.AUDITOR_ADVANCED_URL);
+				await page.waitForSelector('select#sCriteria');
+				await page.waitFor(200);
 
-				const salesButton = await page.$('input#search_radio_sales');
-				salesButton.click();
+				await page.select('select#sCriteria', '9');
+				await page.waitForSelector('input#ctl01_cal1_dateInput');
+				await page.waitFor(200);
 
-				await page.waitForSelector('div#sales-criteria');
-				
-				const low = await page.$('input#sale_price_low');
-				await low.click();
-				await page.waitFor(500);
-				await page.type('input#sale_price_low', '50000', {delay:300});
-				
-				// const to = await page.$('input#sale_date_high');
-				// await to.click();
-				await page.keyboard.press("Tab");
-				await page.keyboard.press("Backspace");
+				await page.type('input#ctl01_cal1_dateInput', start);
+				await page.type('input#ctl01_cal2_dateInput', end);
 
-				await page.type('input#sale_price_high', '10000000', {delay:300});
-				// await page.keyboard.press("Tab");
+				await page.click('button#btAdd');
+				await page.waitFor(200);
 
-				const from = await page.$('input#sale_date_low');
-				await from.click();
-				await page.waitFor(500);
-				await page.type('input#sale_date_low', start, {delay:300});
-				
-				const to = await page.$('input#sale_date_high');
-				await to.click();
-				await page.type('input#sale_date_high', end, {delay:300});
+				await page.select('select#sCriteria', '10');
+				await page.waitForSelector('input#txtCrit');
+				await page.waitFor(200);
 
-				await page.click('input#sale_date_high', {clickCount: 3});
-				await page.keyboard.press("Backspace");
-				await page.type('input#sale_date_high', end, {delay:300});
-								
-				await page.keyboard.press("Tab");
-				
-				await page.waitFor(500);
+				await page.type('input#txtCrit', '50000');
+				await page.type('input#txtCrit2', '10000000');
+
+				await page.click('button#btAdd');
+				await page.waitFor(200);
+
+				await page.select('select#selPageSize','25');
+
+
 				//await page.screenshot({path: 'screenshot1.png'});
 				await page.evaluate(() => {
-					document.querySelector("div#sales-criteria button[type='submit']").click();
+					document.querySelector("button#btSearch").click();
 				});
 				
-				await page.waitForSelector("table#search-results", {timeout: 0});
+				await page.waitForSelector("table#searchResults", {timeout: CONFIG.DEV_CONFIG.SEARCH_TIMEOUT_MSEC});
 				//await page.screenshot({path: 'screenshot2.png'});
 			} catch(e){
 				// console.log(e);
@@ -256,30 +241,34 @@ let Scraper = function(){
 
 		if(visitAttemptCount === CONFIG.DEV_CONFIG.MAX_VISIT_ATTEMPTS){
 			console.log('Failed to reach auditor link. Giving up.');
+			let remainingLinks = hyperlinks.slice(i);
 			return {
 				code: CONFIG.DEV_CONFIG.PAGE_ACCESS_ERROR_CODE,
-				remaining_links: [],
-				processed_information: []
+				remaining_links: remainingLinks,
+				processed_information: processedInformation
 			};
 		}
 
+
 		let allHyperlinks = [];
 		let pageNum=1;	
+		
 
 		while(true){
-	  		await page.waitFor(1500);
+			await page.waitForSelector('table#searchResults tr');
+	  		await page.waitFor(200);
+			let resultTableData = await this.getTableDataBySelector(page, "table#searchResults tr",false);
 
-			let resultTableData = await this.getTableDataBySelector(page, "table#search-results tr",false);
 			if(!resultTableData) continue;
 			resultTableData.shift();	
+			resultTableData.shift();
 
 			resultTableData = resultTableData.filter(row => {
-				transferAmount = row[row.length-1].replace(/[,\$]/g, ''); 
+				transferAmount = row[row.length-2].replace(/[,\$]/g, ''); 
 				
 				return transferAmount !== "0";
 			});
 			resultTableData = resultTableData.map(row => row[0]);
-			resultTableData = resultTableData.filter(parcel => !parcel.includes("No data"))
 			hyperlinks = resultTableData;
 			console.log('Page num '+pageNum);
 			console.log(hyperlinks);
@@ -292,14 +281,18 @@ let Scraper = function(){
 			}
 			pageNum++;
 
-			const nextButton = await page.$('a#search-results_next');
-			const nextClass = await page.$eval('a#search-results_next', e => e.getAttribute('class'));
-			// console.log(nextClass);
-			// console.log(await (await nextButton.getProperty('outerHTML')).jsonValue());
-			if(nextClass.includes('disabled')) break;
+			let links = await page.$$("tbody a");
+			let nextButton;
+			for(let i = 0; i < links.length; i++){
+				handle = links[i];
+				let prop = await handle.getProperty('innerText');
+				let propJSON = await prop.jsonValue();
+				// console.log(propJSON);
+				if(propJSON.includes('Next')) nextButton = handle;
+			}
+			if(nextButton === undefined) break;
 
 			await nextButton.click();
-			// await page.waitFor(1500); // TODO: Wait for update to happen
 
 		}
 		console.log(allHyperlinks);
@@ -309,30 +302,6 @@ let Scraper = function(){
 
 }
 
-// async function ex(address){
-// 	let scraper = new Scraper();
-// 	const browser = await puppeteer.launch({headless: true});
-// 	const page = await browser.newPage();
-
-// 	await page.goto(address);
-// 	await page.waitForSelector('table#ep538257');
-
-// 	let tableData = await scraper.getTableDataBySelector(page, 'id','ep538257',false);
-// 	tableData.shift();
-// 	tableData.pop();
-// 	tableData = tableData.filter(e => e[1].trim());
-// 	tableData = tableData.map(e => [e[1].replace(/\*/g,''),e[0]]);
-// 	let map = {};
-// 	tableData.forEach(e => map[e[0]] = e[1]);
-// 	const fs = require('fs');
-
-// 	let w = fs.createWriteStream('unitabbreviations.json');
-// 	w.write(JSON.stringify(map));
-// 	w.close();
-// 	console.log(map);
-// }
-
-// ex('https://pe.usps.com/text/pub28/28apc_003.htm');
 module.exports = Scraper
 
 function infoValidator(info, processedInformation){
@@ -346,7 +315,9 @@ async function run(){
 	const browser = await puppeteer.launch({headless: false, slowMo: 5});
 	const page = await browser.newPage();
 	const scrape = new Scraper();
-	let allHyperlinks = await scrape.getParcelIDHyperlinksForDate(page);
+	// let allHyperlinks = await scrape.getParcelIDsForDateRange(page, 'JAN/01/2020','JAN/02/2020');
+	let allHyperlinks = [
+  'A01 00101 0003','I39300219 0002', 'O68 01822 0012', 'R72 13907 0051'];
 	let processedInformation = await scrape.processHyperLinks(page, allHyperlinks, infoValidator);
 }
 

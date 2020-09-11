@@ -1,0 +1,22 @@
+{
+	"PATH_ERROR_CODE": 0,
+	"SUCCESS_CODE" : 1,
+	"PAGE_ACCESS_ERROR_CODE" : 2,
+	"RESULTS_NOT_FOUND_ERROR_CODE" : 3,
+	"MAX_LINK_ERRORS" : 1,
+	"MAX_VISIT_ATTEMPTS" : 2,
+	"APP_PORT" : "8000",
+	"COMPLETE_APPEND" : "_complete",
+	"ERROR_APPEND" : "_error",
+	"STREET_ABBR_FILE" : "abbreviations/streetabbreviations.json",
+	"STATE_ABBR_FILE" : "abbreviations/stateabbreviations.json",
+	"SUFF_ABBR_FILE" : "abbreviations/suffabbreviations.json",
+	"UNIT_ABBR_FILE" :"abbreviations/unitabbreviations.json",
+	"AUDITOR_ADVANCED_URL" : "https://realestate.starkcountyohio.gov/search/advancedsearch.aspx?mode=advanced",
+	"AUDITOR_PARCEL_URL" : "https://realestate.starkcountyohio.gov/search/commonsearch.aspx?mode=realprop",
+	"POST_RESPONSE_TIMEOUT_MSEC" : 18000000,
+	"PARCEL_TIMEOUT_MSEC" : 5000,
+	"SEARCH_TIMEOUT_MSEC" : 10000,
+	"ERROR_LOG_FILE" : "logs/hamilton_error_log.txt"
+
+}

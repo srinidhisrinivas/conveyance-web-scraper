@@ -112,6 +112,14 @@ let InfoParser = function(){
 	}
 
 	this.parseOwnerNames = function(ownerString){
+		function removeElement(arr, el, idx){
+			if(idx === undefined) idx = arr.indexOf(el);
+			if(idx !== -1){
+				return arr.slice(0,idx).concat(arr.slice(idx+1));
+			} else {
+				return arr;
+			}
+		}
 		const FILTER_WORDS = CONFIG.USER_CONFIG.NAME_FILTER_WORDS;
 
 		// console.log(ownerString);
@@ -124,7 +132,35 @@ let InfoParser = function(){
 			if(FILTER_WORDS.some(word => firstOwner.includes(word))) return titleCase(firstOwner);
 			let firstOwnerSplit = firstOwner.split(' ');
 			firstOwnerSplit.push(firstOwnerSplit.shift())
-			return titleCase(firstOwnerSplit.join(' '));
+			if(firstOwnerSplit.includes('TR')){
+				firstOwnerSplit = removeElement(firstOwnerSplit, 'TR');
+				firstOwnerSplit[firstOwnerSplit.length - 1] = firstOwnerSplit[firstOwnerSplit.length - 1] + ',';
+				firstOwnerSplit.push('Trustee');
+			} else if(firstOwnerSplit.includes('TRS')){
+				firstOwnerSplit = removeElement(firstOwnerSplit, 'TRS');
+				firstOwnerSplit[firstOwnerSplit.length - 1] = firstOwnerSplit[firstOwnerSplit.length - 1] + ',';
+				firstOwnerSplit.push('Trustees');
+			}
+			let formattedName = titleCase(firstOwnerSplit.join(' '));
+			if(formattedName.includes('Etal') || formattedName.includes('Etalia')){
+				formattedName = formattedName.split(' ');
+				let etalIdx = formattedName.indexOf('Etal');
+				
+				etalIdx = etalIdx === -1 ? formattedName.indexOf('Etalia') : etalIdx;
+				formattedName = removeElement(formattedName, '', etalIdx)
+				if(!isNaN(formattedName[etalIdx])) formattedName = removeElement(formattedName, '', etalIdx)
+				formattedName = formattedName.join(' ');
+
+			} else if(formattedName.includes('Et Al')){
+				formattedName = formattedName.split(' ');
+				let etalIdx = formattedName.indexOf('Et');
+				formattedName = removeElement(formattedName, '', etalIdx);
+				if(formattedName[etalIdx] === 'Al') formattedName = removeElement(formattedName, '', etalIdx)
+				if(!isNaN(formattedName[etalIdx])) formattedName = removeElement(formattedName, '', etalIdx)
+				formattedName = formattedName.join(' ');				
+			}
+			return formattedName;
+
 		}
 		catch(e){
 			return ownerString;

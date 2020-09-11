@@ -18,11 +18,21 @@ let DateHandler = function(){
 		return dateList;
 	}
 	this.formatDate = function(date){
-		day = date.getDate();
-		month = date.getMonth() + 1;
-		year = date.getFullYear();
+		let day = date.getDate();
+		let month = date.getMonth() + 1;
+		let year = date.getFullYear();
 
 		return (month < 10 ? '0' : '') + month + '/' + (day < 10 ? '0' : '') + day + '/' + year;
+	}
+	this.formatMMMDDYYYY = function(date){
+		let day = date.getDate();
+		let month = date.getMonth() + 1;
+		let year = date.getFullYear();
+
+		let MMMList = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+
+		return MMMList[month - 1] + '/' + (day < 10 ? '0' : '') + day + '/' + year;
+
 	}
 
 }
