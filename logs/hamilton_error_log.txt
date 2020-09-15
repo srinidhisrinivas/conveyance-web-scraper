@@ -1,3 +1,15 @@
+Tue Sep 15 2020 15:25:14 GMT-0400 (Eastern Daylight Time)
+
+TypeError: Cannot read property '1' of undefined
+
+Mon Sep 14 2020 20:26:44 GMT-0400 (Eastern Daylight Time)
+
+TimeoutError: waiting for selector "div#sidemenu" failed: timeout 10000ms exceeded
+
+Fri Sep 11 2020 12:20:37 GMT-0400 (Eastern Daylight Time)
+
+ReferenceError: hyperlinks is not defined
+
 Mon Aug 24 2020 16:17:04 GMT-0400 (Eastern Daylight Time)
 
 SyntaxError: Identifier 'from' has already been declared

@@ -22,8 +22,6 @@ const ERROR_LOGGER = new ErrorLogger(county);
 const app = express();
 const port = process.env.PORT || CONFIG.DEV_CONFIG.APP_PORT;
 
-
-
 // app.use(bodyParser.urlencoded({extended:true}));
 app.use(express.json());
 
