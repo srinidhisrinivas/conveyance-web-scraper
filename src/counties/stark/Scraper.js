@@ -3,8 +3,8 @@ const puppeteer = require('puppeteer');
 const ConfigReader = require('../../ConfigReader.js');
 const ErrorLogger = require("../../ErrorLogger.js");
 
-const ERROR_LOGGER = new ErrorLogger('montgomery');
-const CONFIG = new ConfigReader('montgomery');
+const ERROR_LOGGER = new ErrorLogger('stark');
+const CONFIG = new ConfigReader('stark');
 
 let Scraper = function(){
 	this.getTableDataBySelector = async function(page, selector, html){
@@ -79,33 +79,48 @@ let Scraper = function(){
 			for(visitAttemptCount = 0; visitAttemptCount < CONFIG.DEV_CONFIG.MAX_VISIT_ATTEMPTS; visitAttemptCount++){
 				try{
 					await page.goto(CONFIG.DEV_CONFIG.AUDITOR_PARCEL_URL);
-
-					await page.waitForSelector("input#inpParid");
-					await page.click('input#inpParid', {clickCount: 3});					
-					await page.type('input#inpParid', pageLink);
-					const searchButton = await page.$('button#btSearch');
-					await searchButton.click();
-					
-					await page.waitForSelector('tr.SearchResults', {timeout: CONFIG.DEV_CONFIG.SEARCH_TIMEOUT_MSEC});
+					await page.waitForSelector("button#btAgree", {timeout: CONFIG.DEV_CONFIG.ACK_TIMEOUT_MSEC});
 					await page.waitFor(200);
-
-					await page.click("tr.SearchResults");
+					let ackButton = await page.$("button#btAgree");
+					await ackButton.click();
 					await page.waitFor(200);
+					throw "Acknowledge Button Clicked";
 
-					await page.waitForSelector("table#Mailing", {timeout: CONFIG.DEV_CONFIG.PARCEL_TIMEOUT_MSEC});
-					await page.waitFor(200);
-					
-					const ownerTableData = await this.getTableDataBySelector(page, "table#Mailing tr",false);
-					
-					if(ownerTableData.length < 1){
-						throw "Owner Table Not Found";
+				} catch(e){
+					try{
+						await page.waitForSelector("input#inpParid");
+						await page.click('input#inpParid', {clickCount: 3});					
+						await page.type('input#inpParid', pageLink);
+						const searchButton = await page.$('button#btSearch');
+						await searchButton.click();
+
+						await page.waitForSelector('tr.SearchResults', {timeout: CONFIG.DEV_CONFIG.ACK_TIMEOUT_MSEC});
+						await page.waitFor(200);
+
+						await page.click("tr.SearchResults");
+						await page.waitFor(200);
+
+						throw "Parcel clicked";
+
+					} catch(e){
+						// console.log(e);
+						try{
+
+							await page.waitForSelector("table#Owner", {timeout: CONFIG.DEV_CONFIG.PARCEL_TIMEOUT_MSEC});
+							await page.waitFor(200);
+							
+							const ownerTableData = await this.getTableDataBySelector(page, "table#Owner tr",false);
+							
+							if(ownerTableData.length < 1){
+								throw "Owner Table Not Found";
+							}
+						} catch(e){
+							console.log(e);
+							console.log('Unable to visit ' + pageLink + '. Attempt #' + visitAttemptCount);
+							continue;
+						}
 					}
-					
-				}
-				catch(e){
-					// console.log(e);
-					console.log('Unable to visit ' + pageLink + '. Attempt #' + visitAttemptCount);
-					continue;
+						
 				}
 				break;	
 			}
@@ -120,23 +135,35 @@ let Scraper = function(){
 				};
 			}
 			
-
+			let thisURL = page.url();
 			// const parcelIDString = (await (await (await page.$('.DataletHeaderTopLeft')).getProperty('innerText')).jsonValue());
 			// const parcelID = parcelIDString.substring(parcelIDString.indexOf(':')+2);
 			
-			const ownerTableData = await this.getTableDataBySelector(page, "table#Mailing tr",false);
+			const ownerTableData = await this.getTableDataBySelector(page, "table#Owner tr",false);
 			// console.log('Owner Table Data:');
 			// console.log(ownerTableData);
-			let ownerNames = await this.getInfoFromTableByRowHeader(ownerTableData, 'Name', '');
+			let ownerNames = await this.getInfoFromTableByRowHeader(ownerTableData, 'Owner 1', '');
 			ownerNames = infoParser.parseOwnerNames(ownerNames);
+			// console.log(ownerNames);
 
-			let ownerAddress = await this.getInfoFromTableByRowHeader(ownerTableData, 'Mailing Address','');	
-			let zipLine = await this.getInfoFromTableByRowHeader(ownerTableData, 'City, State, Zip','');
-			zipLine = zipLine.replace(/,/g,'');
-			zipLine = zipLine.replace(/(?<=[0-9])((\s)(?=[0-9]))/g,'-');
-			ownerAddress += ',' + zipLine
-			
+			let ownerAddress = await this.getInfoFromTableByRowHeader(ownerTableData, 'Address',',');
+			// console.log(ownerAddress);	
 			ownerAddress = infoParser.parseAddress(ownerAddress);
+
+			// console.log(ownerAddress);
+			// const parcelIDString = (await (await (await page.$('.DataletHeaderTopLeft')).getProperty('innerText')).jsonValue());
+			// const parcelID = parcelIDString.substring(parcelIDString.indexOf(':')+2);
+			const taxTableData = await this.getTableDataBySelector(page, "table[id*='Tax Mailing Name and Address'] tr", false);
+			let taxName = await this.getInfoFromTableByRowHeader(taxTableData, 'Mailing Name 1', '');
+			taxName = infoParser.parseOwnerNames(taxName);
+			// console.log(taxName);
+
+			let taxAddress = (await this.getInfoFromTableByRowHeader(taxTableData, 'Address 1', '')).trim();;
+			taxAddress += ', ' + (await this.getInfoFromTableByRowHeader(taxTableData, 'Address 2', '')).trim();
+			taxAddress += ', ' + (await this.getInfoFromTableByRowHeader(taxTableData, 'Address 3', '')).trim();
+			// console.log(taxAddress)
+			taxAddress = infoParser.parseAddress(taxAddress);
+			// console.log(taxAddress);
 			
 			if(ownerAddress.street === ''){
 				let remainingLinks = hyperlinks.slice(i);
@@ -147,19 +174,88 @@ let Scraper = function(){
 				};
 			}
 
-			let saleTableData = await this.getTableDataBySelector(page, "table#Sales tr",false);
-			saleTableData.shift();
-			saleTableData.pop();
-			
-			let transferAmount = saleTableData[saleTableData.length - 1][1];
-			
-			let marketTableData = await this.getTableDataBySelector(page, "table#Values tr",false);
-			marketTableData = marketTableData.filter(row => row.includes('Total'))[0];
-			let marketValue = marketTableData[marketTableData.length - 1];
-			
-			
-			transferAmount = parseInt(transferAmount.replace(/[,\$]/g, ''));
-			marketValue = parseInt(marketValue.replace(/[,\$]/g, ''));
+			for(visitAttemptCount = 0; visitAttemptCount < CONFIG.DEV_CONFIG.MAX_VISIT_ATTEMPTS; visitAttemptCount++){
+				try{
+					let transferTag;
+					let sideMenu = await page.$$("div#sidemenu > li.unsel > a");
+					//console.log(sideMenu);
+					for(let i = 0; i < sideMenu.length; i++){
+						handle = sideMenu[i];
+						let prop = await handle.getProperty('innerText');
+						let propJSON = await prop.jsonValue();
+						if(propJSON.includes('Values')){
+
+							transferTag = handle;
+							break;
+						}
+					}
+					await transferTag.click();
+					await page.waitForSelector("table[id*='Appraised']", {timeout: CONFIG.DEV_CONFIG.PARCEL_TIMEOUT_MSEC});
+				}
+				catch(e){
+					// console.log(e);
+					console.log('Unable to visit values. Attempt #' + visitAttemptCount);
+					await page.goto(thisURL);
+
+					continue;
+				}
+				break;	
+			}
+			if(visitAttemptCount === CONFIG.DEV_CONFIG.MAX_VISIT_ATTEMPTS){
+				console.log('Failed to reach values. Giving up.');
+				continue;
+				
+			} 
+
+			const valueTableData = await this.getTableDataBySelector(page, "table[id*='Appraised'] tr", false);
+			let marketValue = await this.getInfoFromTableByRowHeader(valueTableData, 'Appraised Total', '');
+
+			if(marketValue.trim() !== '') marketValue = parseInt(marketValue.replace(/[,\$]/g, ''));
+			else marketValue = undefined;
+
+			// console.log(marketValue);
+			await page.goto(thisURL);
+			for(visitAttemptCount = 0; visitAttemptCount < CONFIG.DEV_CONFIG.MAX_VISIT_ATTEMPTS; visitAttemptCount++){
+				try{
+
+					await page.waitForSelector("div#sidemenu", {timeout: CONFIG.DEV_CONFIG.PARCEL_TIMEOUT_MSEC});
+					let transferTag;
+					let sideMenu = await page.$$("div#sidemenu > li.unsel > a");
+					for(let i = 0; i < sideMenu.length; i++){
+						handle = sideMenu[i];
+						let prop = await handle.getProperty('innerText');
+						let propJSON = await prop.jsonValue();
+						// console.log(propJSON);
+						if(propJSON.includes('Sales')){
+							transferTag = handle;
+							break;
+						}
+					}
+					await transferTag.click();
+					await page.waitForSelector("table[id='Sales History']", {timeout: CONFIG.DEV_CONFIG.PARCEL_TIMEOUT_MSEC});
+				}
+				catch(e){
+					// console.log(e);
+					console.log('Unable to visit transfers. Attempt #' + visitAttemptCount);
+					await page.goto(thisURL);
+
+					continue;
+				}
+				break;	
+			}
+			if(visitAttemptCount === CONFIG.DEV_CONFIG.MAX_VISIT_ATTEMPTS){
+				console.log('Failed to reach sales. Giving up.');
+				continue;
+				
+			} 
+
+			const conveyanceTableData = await this.getTableDataBySelector(page, "table[id='Sales History'] tr", false);
+			let transferAmount = await this.getInfoFromTableByRowHeader(conveyanceTableData, 'Sale Price', '');
+
+			if(transferAmount.trim() !== '') transferAmount = parseInt(transferAmount.replace(/[,\$]/g, ''));
+			else transferAmount = undefined;
+
+			// console.log(transferAmount);
 
 			let currentInfo = {
 				owner: ownerNames,
@@ -251,10 +347,8 @@ let Scraper = function(){
 
 		if(visitAttemptCount === CONFIG.DEV_CONFIG.MAX_VISIT_ATTEMPTS){
 			console.log('Failed to reach auditor link. Giving up.');
-			let remainingLinks = hyperlinks.slice(i);
 			return {
 				code: CONFIG.DEV_CONFIG.PAGE_ACCESS_ERROR_CODE,
-				remaining_links: remainingLinks,
 				processed_information: processedInformation
 			};
 		}
@@ -325,10 +419,16 @@ async function run(){
 	const browser = await puppeteer.launch({headless: false, slowMo: 5});
 	const page = await browser.newPage();
 	const scrape = new Scraper();
-	let allHyperlinks = await scrape.getParcelIDsForDateRange(page, '01/01/2020','01/02/2020');
-	// let allHyperlinks = [
- //  'A01 00101 0003','I39300219 0002', 'O68 01822 0012', 'R72 13907 0051'];
+	// let allHyperlinks = await scrape.getParcelIDsForDateRange(page, '01/01/2020','01/02/2020');
+// 	let allHyperlinks = [
+//   '10012145', '105676',
+//   '113194',   '1308489',
+//   '1400625',  '3603335',
+//   '3605658',  '616491',
+//   '616493'
+// ];
+
 	let processedInformation = await scrape.processHyperLinks(page, allHyperlinks, infoValidator);
 }
 
-run();
+// run();
