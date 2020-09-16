@@ -115,7 +115,7 @@ let Scraper = function(){
 								throw "Owner Table Not Found";
 							}
 						} catch(e){
-							console.log(e);
+							// console.log(e);
 							console.log('Unable to visit ' + pageLink + '. Attempt #' + visitAttemptCount);
 							continue;
 						}
