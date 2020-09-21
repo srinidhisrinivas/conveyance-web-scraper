@@ -16,7 +16,7 @@ goto :EOF
 
 <TITLE>Edit User Config - Montgomery</TITLE>
 <SCRIPT language="JavaScript">
-window.resizeTo(500,520);
+window.resizeTo(500,600);
 
 function closeHTA(){
    window.close();
@@ -37,9 +37,11 @@ function load(){
    JSON.ArrayOf("NAME_FILTER_WORDS").EmitSb(filterString);
    var exceptionString = new ActiveXObject("Chilkat_9_5_0.StringBuilder");
    JSON.ArrayOf("TITLECASE_EXCEPTIONS").EmitSb(exceptionString);
+
    
    document.getElementById("filter").value = filterString.GetAsString().replace(/[\[\]]/g,"");
    document.getElementById("exception").value = exceptionString.GetAsString().replace(/[\[\]]/g,"").toUpperCase();
+   document.getElementById("taxyear").value = JSON.StringOf("TAX_YEAR");
 }
 
 function stringToJarr(str){
@@ -60,6 +62,7 @@ function stringToJarr(str){
 function restore(){
    var JSON = ReadFile();
    var defDir = JSON.StringOf("DEFAULT_TARGET_DIR");
+   var taxYear = JSON.StringOf("DEFAULT_TAX_YEAR");
    
   
    var filterString = new ActiveXObject("Chilkat_9_5_0.StringBuilder");
@@ -68,6 +71,7 @@ function restore(){
    JSON.ArrayOf("DEFAULT_TITLECASE_EXCEPTIONS").EmitSb(exceptionString);
 
    JSON.UpdateString("TARGET_DIR", defDir);
+   JSON.UpdateString("TAX_YEAR", taxYear);
 
    
    
@@ -86,6 +90,7 @@ function update(){
    var JSON = ReadFile();
    var FS = new ActiveXObject("Scripting.FileSystemObject");
    var dir = document.getElementById("dir").value;
+   var tax = document.getElementById("taxyear").value;
 
    
    var filterWords = stringToJarr(document.getElementById("filter").value);
@@ -95,12 +100,14 @@ function update(){
       document.getElementById("dir-description").innerText = "ERROR: This folder does not exist";
    } else {
       document.getElementById("dir-description").innerText = "New Folder Saved!";
+      document.getElementById("taxyear-description").innerText = "New Tax Year Saved!";
       
       document.getElementById("filter-description").innerText = "New Filter Words Saved!";
       document.getElementById("exception-description").innerText = "New Exception Words Saved!";
 
 
       JSON.UpdateString("TARGET_DIR", dir);
+      JSON.UpdateString("TAX_YEAR", tax);
       
       JSON.Delete("NAME_FILTER_WORDS");
       JSON.AddArrayCopyAt(-1,"NAME_FILTER_WORDS", filterWords);
@@ -120,7 +127,9 @@ function update(){
 	<div class="input-label" id="dir-label" style="font-weight: 400;"> Destination Folder: </div> <br>
    <input type="text" id="dir" style="width: 450px;"> <br>
    <div class="input-label" id="dir-description" style="font-size: 8pt;"> Copy and Paste the full path of the destination </div> <br>
-   
+   <div class="input-label" id="taxyear-label" style="font-weight: 400;"> Tax Year: </div> <br>
+   <input type="text" id="taxyear" style="width: 450px;"> <br>
+   <div class="input-label" id="taxyear-description" style="font-size: 8pt;"> Enter the Tax Year you want to filter by </div> <br>
    <div class="input-label" id="filter-label" style="font-weight: 400;"> Owner Name Filter Words: </div> <br>
    <textarea id="filter" style="width: 450px; height:75px"> </textarea> <br>
    <div class="input-label" id="filter-description" style="font-size: 8pt;"> These are words which, if found in the owner's name, will cause the name to remain the same without changing the order of any words. Put within double quotes. Separate by commas. </div> <br>

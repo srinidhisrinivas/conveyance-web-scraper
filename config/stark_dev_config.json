@@ -15,7 +15,7 @@
 	"AUDITOR_ADVANCED_URL" : "https://realestate.starkcountyohio.gov/search/advancedsearch.aspx?mode=advanced",
 	"AUDITOR_PARCEL_URL" : "https://realestate.starkcountyohio.gov/search/commonsearch.aspx?mode=realprop",
 	"POST_RESPONSE_TIMEOUT_MSEC" : 18000000,
-	"ACK_TIMEOUT_MSEC" : 3000,
+	"ACK_TIMEOUT_MSEC" : 1000,
 	"PARCEL_TIMEOUT_MSEC" : 10000,
 	"SEARCH_TIMEOUT_MSEC" : 15000,
 	"ERROR_LOG_FILE" : "logs/stark_error_log.txt"

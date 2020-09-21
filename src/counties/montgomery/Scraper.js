@@ -83,6 +83,10 @@ let Scraper = function(){
 					await page.waitForSelector("input#inpParid");
 					await page.click('input#inpParid', {clickCount: 3});					
 					await page.type('input#inpParid', pageLink);
+
+					await page.select('#inpTaxyr', CONFIG.USER_CONFIG.TAX_YEAR);
+					await page.waitFor(200);
+
 					const searchButton = await page.$('button#btSearch');
 					await searchButton.click();
 					
@@ -124,14 +128,19 @@ let Scraper = function(){
 			// const parcelIDString = (await (await (await page.$('.DataletHeaderTopLeft')).getProperty('innerText')).jsonValue());
 			// const parcelID = parcelIDString.substring(parcelIDString.indexOf(':')+2);
 			
-			const ownerTableData = await this.getTableDataBySelector(page, "table#Mailing tr",false);
+			const mailingTableData = await this.getTableDataBySelector(page, "table#Mailing tr",false);
+			let ownerTableData = await this.getTableDataBySelector(page, "table#Owner tr", false);
+			ownerTableData = ownerTableData.filter(row => row.some(e => e.length > 0));
+			ownerTableData = ownerTableData.map(row => row[0]);
+			
 			// console.log('Owner Table Data:');
 			// console.log(ownerTableData);
-			let ownerNames = await this.getInfoFromTableByRowHeader(ownerTableData, 'Name', '');
+			let ownerNames = ownerTableData[ownerTableData.indexOf('Name') + 1];
 			ownerNames = infoParser.parseOwnerNames(ownerNames);
+			// console.log(ownerNames);
 
-			let ownerAddress = await this.getInfoFromTableByRowHeader(ownerTableData, 'Mailing Address','');	
-			let zipLine = await this.getInfoFromTableByRowHeader(ownerTableData, 'City, State, Zip','');
+			let ownerAddress = await this.getInfoFromTableByRowHeader(mailingTableData, 'Mailing Address','');	
+			let zipLine = await this.getInfoFromTableByRowHeader(mailingTableData, 'City, State, Zip','');
 			zipLine = zipLine.replace(/,/g,'');
 			zipLine = zipLine.replace(/(?<=[0-9])((\s)(?=[0-9]))/g,'-');
 			ownerAddress += ',' + zipLine
@@ -221,6 +230,10 @@ let Scraper = function(){
 				await page.waitFor(200);
 
 				await page.select('select#selPageSize','25');
+				await page.waitFor(200);
+
+				await page.select('#inpTaxyr', CONFIG.USER_CONFIG.TAX_YEAR);
+				await page.waitFor(200);
 
 
 				//await page.screenshot({path: 'screenshot1.png'});
@@ -315,9 +328,9 @@ async function run(){
 	const browser = await puppeteer.launch({headless: false, slowMo: 5});
 	const page = await browser.newPage();
 	const scrape = new Scraper();
-	// let allHyperlinks = await scrape.getParcelIDsForDateRange(page, 'JAN/01/2020','JAN/02/2020');
-	let allHyperlinks = [
-  'A01 00101 0003','I39300219 0002', 'O68 01822 0012', 'R72 13907 0051'];
+	let allHyperlinks = await scrape.getParcelIDsForDateRange(page, 'JAN/01/2020','JAN/02/2020');
+	// let allHyperlinks = [
+ //  'A01 00101 0003','I39300219 0002', 'O68 01822 0012', 'R72 13907 0051'];
 	let processedInformation = await scrape.processHyperLinks(page, allHyperlinks, infoValidator);
 }
 
