@@ -12,11 +12,12 @@
 	"STATE_ABBR_FILE" : "abbreviations/stateabbreviations.json",
 	"SUFF_ABBR_FILE" : "abbreviations/suffabbreviations.json",
 	"UNIT_ABBR_FILE" :"abbreviations/unitabbreviations.json",
-	"AUDITOR_ADVANCED_URL" : "https://www.mcrealestate.org/search/advancedsearch.aspx?mode=advanced",
-	"AUDITOR_PARCEL_URL" : "https://www.mcrealestate.org/search/CommonSearch.aspx?mode=PARID",
+	"AUDITOR_ADVANCED_URL" : "https://realestate.starkcountyohio.gov/search/advancedsearch.aspx?mode=advanced",
+	"AUDITOR_PARCEL_URL" : "https://realestate.starkcountyohio.gov/search/commonsearch.aspx?mode=realprop",
 	"POST_RESPONSE_TIMEOUT_MSEC" : 18000000,
-	"PARCEL_TIMEOUT_MSEC" : 5000,
-	"SEARCH_TIMEOUT_MSEC" : 10000,
-	"ERROR_LOG_FILE" : "logs/montgomery_error_log.txt"
+	"ACK_TIMEOUT_MSEC" : 1000,
+	"PARCEL_TIMEOUT_MSEC" : 10000,
+	"SEARCH_TIMEOUT_MSEC" : 15000,
+	"ERROR_LOG_FILE" : "logs/lucas_error_log.txt"
 
 }

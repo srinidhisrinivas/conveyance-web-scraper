@@ -107,7 +107,7 @@ let Scraper = function(){
 					
 				}
 				catch(e){
-					// console.log(e);
+					console.log(e);
 					console.log('Unable to visit ' + pageLink + '. Attempt #' + visitAttemptCount);
 					continue;
 				}

@@ -5,18 +5,19 @@
 	"RESULTS_NOT_FOUND_ERROR_CODE" : 3,
 	"MAX_LINK_ERRORS" : 1,
 	"MAX_VISIT_ATTEMPTS" : 2,
-	"APP_PORT" : "8000",
+	"APP_PORT" : "8002",
 	"COMPLETE_APPEND" : "_complete",
 	"ERROR_APPEND" : "_error",
 	"STREET_ABBR_FILE" : "abbreviations/streetabbreviations.json",
 	"STATE_ABBR_FILE" : "abbreviations/stateabbreviations.json",
 	"SUFF_ABBR_FILE" : "abbreviations/suffabbreviations.json",
 	"UNIT_ABBR_FILE" :"abbreviations/unitabbreviations.json",
-	"AUDITOR_ADVANCED_URL" : "https://www.mcrealestate.org/search/advancedsearch.aspx?mode=advanced",
-	"AUDITOR_PARCEL_URL" : "https://www.mcrealestate.org/search/CommonSearch.aspx?mode=PARID",
+	"AUDITOR_ADVANCED_URL" : "https://beacon.schneidercorp.com/Application.aspx?AppID=1067&LayerID=25465&PageTypeID=2&PageID=10477",
+	"AUDITOR_PARCEL_URL" : "https://beacon.schneidercorp.com/Application.aspx?AppID=1067&LayerID=25465&PageTypeID=2&PageID=10347",
 	"POST_RESPONSE_TIMEOUT_MSEC" : 18000000,
-	"PARCEL_TIMEOUT_MSEC" : 5000,
-	"SEARCH_TIMEOUT_MSEC" : 10000,
-	"ERROR_LOG_FILE" : "logs/montgomery_error_log.txt"
+	"ACK_TIMEOUT_MSEC" : 3000,
+	"PARCEL_TIMEOUT_MSEC" : 10000,
+	"SEARCH_TIMEOUT_MSEC" : 15000,
+	"ERROR_LOG_FILE" : "logs/richland_error_log.txt"
 
 }

@@ -347,10 +347,7 @@ let Scraper = function(){
 
 		if(visitAttemptCount === CONFIG.DEV_CONFIG.MAX_VISIT_ATTEMPTS){
 			console.log('Failed to reach auditor link. Giving up.');
-			return {
-				code: CONFIG.DEV_CONFIG.PAGE_ACCESS_ERROR_CODE,
-				processed_information: processedInformation
-			};
+			return [];
 		}
 
 
