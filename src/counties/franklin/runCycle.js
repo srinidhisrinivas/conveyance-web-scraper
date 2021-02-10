@@ -15,7 +15,7 @@ async function runCycle(start, end, remainingLinks, remainingDates, finalpath, h
 	function infoValidator(info, processedInformation){
 		const validConvCodes = CONFIG.USER_CONFIG.VALID_CONV_CODES;	
 		let valid = false;
-		if(info.transfer < info.value && info.transfer > 0) valid = true;
+		if(info.value > 50000 && info.transfer > 0 && info.transfer + 50000 < info.value) valid = true;
 		if(processedInformation.some(e => e.owner === info.owner)) valid = false;
 		if('conveyance_code' in info){
 			return valid && validConvCodes.includes(info.conveyance_code);

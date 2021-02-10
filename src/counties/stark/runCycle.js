@@ -19,7 +19,7 @@ async function runCycle(start, end, remainingLinks, remainingDates, finalpath, h
 		// console.log(info.transfer);
 		// console.log(info.value);
 		// console.log(info.transfer < info.value);
-		if(info.transfer < info.value && info.transfer > 0) valid = true;
+		if(info.value > 50000 && info.transfer > 0 && info.transfer + 50000 < info.value) valid = true;
 		if(processedInformation.some(e => e.owner === info.owner)) valid = false;
 		return valid;
 		

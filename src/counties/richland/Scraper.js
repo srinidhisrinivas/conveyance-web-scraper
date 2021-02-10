@@ -54,8 +54,6 @@ let Scraper = function(){
 	}
 	this.getInfoFromTableByColumnHeader = async function(table, header, rowNum){
 		let headers = table.shift();
-		// console.log(headers);
-		// console.log(header);
 		let colIndex = headers.indexOf(header);
 		if(colIndex > 0){
 			return table[rowNum][colIndex];
@@ -93,7 +91,7 @@ let Scraper = function(){
 					
 				}
 				catch(e){
-					console.log(e);
+					// console.log(e);
 					try{
 				
 						// Parcel ID text field
@@ -119,7 +117,7 @@ let Scraper = function(){
 					
 					} catch(e){
 						// If any of the above `waitFors` times out, then that means we were unable to reach the page. Try again.
-						console.log(e);
+						// console.log(e);
 						console.log('Unable to visit ' + pageLink + '. Attempt #' + visitAttemptCount);
 						continue;
 					}
@@ -161,7 +159,7 @@ let Scraper = function(){
 			taxInfo = taxInfo.split('\u000A');
 			taxInfo.shift();
 			let taxAddress = taxInfo[taxInfo.length-2] + ', ' + taxInfo[taxInfo.length-1];
-			console.log(taxAddress);
+			//console.log(taxAddress);
 			let ownerAddress = infoParser.parseAddress(taxAddress);
 
 			// Get the sales table data using the selector
@@ -186,7 +184,17 @@ let Scraper = function(){
 
 			// console.log(transferAmount);
 			
-			let marketValue = 40000000;
+			let marketValue = 0, tempMarkVal;
+
+			let valueTableData = await this.getTableDataBySelector(page, "#ctlBodyPane_ctl02_ctl01_grdValuation_grdYearData tr", false);
+			try{
+				tempMarkVal = await this.getInfoFromTableByColumnHeader(valueTableData, '2020', valueTableData.length-2);	
+			} catch(e){
+				tempMarkVal = 'ERR';
+			}
+			
+			if(tempMarkVal !== 'ERR') marketValue = parseInt(tempMarkVal.replace(/[,\$]/g,''));
+
 			let currentInfo = {
 				owner: ownerNames,
 				street: ownerAddress.street,
@@ -196,49 +204,23 @@ let Scraper = function(){
 				transfer: transferAmount,
 				value: marketValue
 			};
-
+			
 			if(!infoValidator(currentInfo, processedInformation)){
 				console.log('Value Validation Failed');
 				continue;
 			}
-
+			
 			processedInformation.push(currentInfo);
 
 			console.log(processedInformation[processedInformation.length - 1]);
 			
-			// console.log('Parcel ID: ' + parcelID);
-			// console.log('Owner: ' + ownerNames);
-			// console.log('Owner Address: ' + ownerAddress);
-			// console.log('Transfer Price: ' + transferAmount);
-			// console.log('Market Value: ' + marketValue);
-			// console.log('\n')
 			
 		}
-		//return processedInformation;
+		return processedInformation;
 	}
 
 	this.getParcelIDsForDateRange = async function(page, start, end){
 
-		// await page.goto(CONFIG.DEV_CONFIG.AUDITOR_ADVANCED_URL);
-		
-		// await page.waitForSelector("input#daterange", {timeout: CONFIG.DEV_CONFIG.SEARCH_TIMEOUT_MSEC})
-		// await page.waitFor(200);
-
-		// await page.type("input#daterange", start+" - "+end);
-		// await page.waitFor(200);
-		// await page.keyboard.press('Tab');
-
-		// await page.type("input#transfersOver", '50000');
-		// await page.waitFor(200);		
-		
-		// await page.type("input#transfersUnder", '10000000');
-		// await page.waitFor(200);		
-
-		// await page.keyboard.press('Enter');
-		// await page.waitFor(200);
-
-		// await page.waitForSelector("table#tranferResults", {timeout: CONFIG.DEV_CONFIG.SEARCH_TIMEOUT_MSEC});
-		// await page.waitFor(200);
 		let visitAttemptCount;
 		for(visitAttemptCount = 0; visitAttemptCount < CONFIG.DEV_CONFIG.MAX_VISIT_ATTEMPTS; visitAttemptCount++){
 			try{
@@ -280,19 +262,16 @@ let Scraper = function(){
 		
 		let allHyperlinks = [];
 		let pageNum=1;	
-		// Parcel ID text field
+	
 		await page.click("input#ctlBodyPane_ctl00_ctl01_rdbUseSaleDateRange");
 
-		// Triple click text field to select all text present in it already
-		// This is done to select all the text so that we replace the pre-existing text
-		//	 	when we type a new parcel ID
+	
 		await page.type('input#ctlBodyPane_ctl00_ctl01_txtSaleDateLowDetail', start);
 		await page.waitFor(200);
 
 		await page.type('input#ctlBodyPane_ctl00_ctl01_txtSaleDateHighDetail', end);
 		await page.waitFor(200);					
 
-		// Type the parcel ID in the field
 		await page.type('input#ctlBodyPane_ctl00_ctl01_txtStartSalePrice', '50000');
 		await page.waitFor(200);
 
@@ -338,23 +317,23 @@ async function run(){
 	const browser = await puppeteer.launch({headless: false});//, slowMo: 5});
 	const page = await browser.newPage();
 	const scrape = new Scraper();
-	//let allHyperlinks = await scrape.getParcelIDsForDateRange(page, '01/01/2020','01/05/2020');
-	let allHyperlinks = [
-			  '0270312308000',
-			  '0178021615000',
-			  '0512020618000',
-			  '0386017317012',
-			  '0372805301002',
-			  '0250907212000',
-			  '0460805518000',
-			  '0460802104000',
-			  '0386021417000',
-			  '0302402102000',
-			  '0289007418000',
-			  '0261102306000'
-			];
+	let allHyperlinks = await scrape.getParcelIDsForDateRange(page, '01/01/2020','01/05/2020');
+	// let allHyperlinks = [
+	// 		  '0270312308000',
+	// 		  '0178021615000',
+	// 		  '0512020618000',
+	// 		  '0386017317012',
+	// 		  '0372805301002',
+	// 		  '0250907212000',
+	// 		  '0460805518000',
+	// 		  '0460802104000',
+	// 		  '0386021417000',
+	// 		  '0302402102000',
+	// 		  '0289007418000',
+	// 		  '0261102306000'
+	// 		];
 
 	let processedInformation = await scrape.processHyperLinks(page, allHyperlinks, infoValidator);
 }
 
-run();
+//run();
