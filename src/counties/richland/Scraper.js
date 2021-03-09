@@ -129,7 +129,7 @@ let Scraper = function(){
 
 			// Return error if failed too many times.
 			if(visitAttemptCount === CONFIG.DEV_CONFIG.MAX_VISIT_ATTEMPTS){
-				console.log('Failed to reach ' + auditorURL + '. Giving up.');
+				console.log('Failed to reach ' + pageLink + '. Giving up.');
 				return {
 					return_status: CONFIG.DEV_CONFIG.PAGE_ACCESS_ERROR_CODE,
 					scraped_information: []
@@ -144,8 +144,15 @@ let Scraper = function(){
 
 			// Get the owner name either from either the link or the text field.
 			// This is how you get the innerText property from a JSHandle
-			if(owner1Handle) prop = await owner1Handle.getProperty('innerText');
-			else if(owner1Link) prop = await owner1Link.getProperty('innerText');
+			try{
+				if(owner1Handle) prop = await owner1Handle.getProperty('innerText');
+				else if(owner1Link) prop = await owner1Link.getProperty('innerText');
+			}
+			catch(e){
+				console.log('Name not found, skipping.');
+				continue;
+			}
+			
 			let baseOwnerName = await prop.jsonValue();
 
 			
@@ -153,8 +160,14 @@ let Scraper = function(){
 
 
 			// Get the mailing tax name and address and manipulate them to get it as a string.
-			let mailingHandle = await page.$('span#ctlBodyPane_ctl01_ctl01_lblMailing');
-			prop = await mailingHandle.getProperty('innerText');
+			try{
+				let mailingHandle = await page.$('span#ctlBodyPane_ctl01_ctl01_lblMailing');
+				prop = await mailingHandle.getProperty('innerText');	
+			} catch (e){
+				console.log('Address not found, skipping.');
+				continue;
+			}
+			
 			let taxInfo = await prop.jsonValue();
 			taxInfo = taxInfo.split('\u000A');
 			taxInfo.shift();
@@ -244,7 +257,7 @@ let Scraper = function(){
 				} catch(e){
 					// If any of the above `waitFors` times out, then that means we were unable to reach the page. Try again.
 					console.log(e);
-					console.log('Unable to visit ' + auditorURL + '. Attempt #' + visitAttemptCount);
+					console.log('Unable to visit ' + CONFIG.DEV_CONFIG.AUDITOR_ADVANCED_URL + '. Attempt #' + visitAttemptCount);
 					continue;
 				}
 			}
@@ -255,7 +268,7 @@ let Scraper = function(){
 
 		// Return error if failed too many times.
 		if(visitAttemptCount === CONFIG.DEV_CONFIG.MAX_VISIT_ATTEMPTS){
-			console.log('Failed to reach ' + auditorURL + '. Giving up.');
+			console.log('Failed to reach ' + CONFIG.DEV_CONFIG.AUDITOR_ADVANCED_URL + '. Giving up.');
 			let errorMsg = "Failed to reach auditor page. Giving up.";
 			throw errorMsg;
 		}

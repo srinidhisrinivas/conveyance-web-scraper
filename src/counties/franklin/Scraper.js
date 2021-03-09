@@ -120,7 +120,7 @@ let Scraper = function(){
 			let transferAmount = await this.getInfoFromTableByRowHeader(transferTableData,'Transfer Price','');
 			transferAmount = parseInt(transferAmount.replace(/[,\$]/g, ''));
 
-			const marketTableData = await this.getTableDataBySelector(page, 'id','Market Value',false);
+			const marketTableData = await this.getTableDataBySelector(page, 'id','2020 Auditor',false);
 			let marketValue = await this.getInfoFromTableByRowHeader(marketTableData, 'Total','');
 			marketValue = parseInt(marketValue.replace(/,/g, ''));
 
@@ -207,15 +207,22 @@ let Scraper = function(){
 	  	
 			let resultTableData = await this.getTableDataBySelector(page, 'class', 'datatable',true);
 			resultTableData.shift();
+			resultTableData = resultTableData.filter(row => row.length > 0);
 
+			// console.log(resultTableData);
 			// TODO get parcelID column index from table header or something
 			const parcelIDColIndex = 1;
 			const hyperlinks = [];
 			for(let i = 0; i < resultTableData.length; i++){
-				let html = resultTableData[i][parcelIDColIndex];
-				let href = html.match(/href=".*"/)[0];
-				let link = href.match(/".*"/)[0].replace(/"/g,'');
-				hyperlinks.push(link);
+				try{
+					let html = resultTableData[i][parcelIDColIndex];
+					let href = html.match(/href=".*"/)[0];
+					let link = href.match(/".*"/)[0].replace(/"/g,'');
+					hyperlinks.push(link);	
+				} catch(e){
+					continue;
+				}
+				
 			}
 		
 			console.log('Page num '+pageNum);
@@ -241,29 +248,36 @@ let Scraper = function(){
 	}
 
 }
+function infoValidator(info, processedInformation){
+	let valid = false;
+	if(info.transfer + 50000 < info.value && info.transfer > 0) valid = true;
+	if(processedInformation.some(e => e.owner === info.owner)) valid = false;	
+	return valid;
+	
+}	
 
-// async function ex(address){
-// 	let scraper = new Scraper();
-// 	const browser = await puppeteer.launch({headless: true});
-// 	const page = await browser.newPage();
+async function run(){
+	const browser = await puppeteer.launch({headless: false});//, slowMo: 5});
+	const page = await browser.newPage();
+	const scrape = new Scraper();
+	let allHyperlinks = await scrape.getParcelIDHyperlinksForDate(page, '03/01/2021');
+	// let allHyperlinks = [
+	// 		  '0270312308000',
+	// 		  '0178021615000',
+	// 		  '0512020618000',
+	// 		  '0386017317012',
+	// 		  '0372805301002',
+	// 		  '0250907212000',
+	// 		  '0460805518000',
+	// 		  '0460802104000',
+	// 		  '0386021417000',
+	// 		  '0302402102000',
+	// 		  '0289007418000',
+	// 		  '0261102306000'
+	// 		];
 
-// 	await page.goto(address);
-// 	await page.waitForSelector('table#ep538257');
+	let processedInformation = await scrape.processHyperLinks(page, allHyperlinks, infoValidator);
+}
 
-// 	let tableData = await scraper.getTableDataBySelector(page, 'id','ep538257',false);
-// 	tableData.shift();
-// 	tableData.pop();
-// 	tableData = tableData.filter(e => e[1].trim());
-// 	tableData = tableData.map(e => [e[1].replace(/\*/g,''),e[0]]);
-// 	let map = {};
-// 	tableData.forEach(e => map[e[0]] = e[1]);
-// 	const fs = require('fs');
-
-// 	let w = fs.createWriteStream('unitabbreviations.json');
-// 	w.write(JSON.stringify(map));
-// 	w.close();
-// 	console.log(map);
-// }
-
-// ex('https://pe.usps.com/text/pub28/28apc_003.htm');
+// run();
 module.exports = Scraper

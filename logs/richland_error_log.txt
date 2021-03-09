@@ -1,0 +1,12 @@
+Fri Feb 19 2021 14:53:12 GMT+0100 (Central European Standard Time)
+
+TypeError: Cannot read property 'getProperty' of null
+
+Thu Feb 11 2021 17:39:15 GMT+0100 (Central European Standard Time)
+
+ReferenceError: auditorURL is not defined
+
+Thu Feb 11 2021 17:37:12 GMT+0100 (Central European Standard Time)
+
+ReferenceError: auditorURL is not defined
+
