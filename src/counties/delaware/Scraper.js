@@ -11,11 +11,14 @@ const auditorAddress = CONFIG.DEV_CONFIG.AUDITOR_TARGET_URL;
 
 let Scraper = function(){
 	this.getTableDataBySelector = async function(page, selector, html){
+		//console.log(selector);
+		//console.log(await page.$eval("table#ctl00_cphMain_tcMain_tpInstruments_ucInstrumentsGridV2_cpgvInstruments", el => el.outerHTML));
 		if(html){
 			return await page.$$eval(selector, rows => {
 			  return Array.from(rows, row => {
+			  	
 			    const columns = row.querySelectorAll('td');
-			    const datum = Array.from(columns, column => column.outerHTML);
+			    const datum = Array.from(columns, column => column.innerHTML);
 			    return datum;
 				  });
 
@@ -23,6 +26,7 @@ let Scraper = function(){
 		} else {
 			return await page.$$eval(selector, rows => {
 			  return Array.from(rows, row => {
+			  	
 			    const columns = row.querySelectorAll('td');
 			    const datum = Array.from(columns, column => column.innerText);
 			    return datum;
@@ -116,7 +120,7 @@ let Scraper = function(){
 			const ownerTableData = await this.getTableDataBySelector(page, "td[width='66%'] > table.ui-corner-all > tbody > tr",false);
 			//console.log('Owner Table Data:');
 			
-			//console.log(ownerTableData);
+			// console.log(ownerTableData);
 			let ownerNames = await this.getInfoFromTableByRowHeader(ownerTableData, 'Owner Name', ',');
 			ownerNames = infoParser.parseOwnerNames(ownerNames);
 
@@ -209,7 +213,7 @@ let Scraper = function(){
 		await page.waitFor(1000);
 		await searchButton.click();
 		
-		await page.waitForSelector("table.cottPagedGridView tr", {timeout: CONFIG.DEV_CONFIG.RESULTS_TIMEOUT_MSEC});
+		await page.waitForSelector("tr.cottPagedGridViewRowStyle", {timeout: CONFIG.DEV_CONFIG.RESULTS_TIMEOUT_MSEC});
 		// const table = await page.$("table.cottPagedGridView tr");
 		// console.log(table);
 		let allHyperlinks = [];
@@ -218,18 +222,22 @@ let Scraper = function(){
 		while(true){
 	  		await page.waitFor(500);
 
-			let resultTableData = await this.getTableDataBySelector(page, "table.cottPagedGridView > tbody > tr",false);
+			let resultTableData = await this.getTableDataBySelector(page, "table#ctl00_cphMain_tcMain_tpInstruments_ucInstrumentsGridV2_cpgvInstruments tr",true);
 			
+			// console.log(resultTableData);
 			if(!resultTableData) continue;
 			resultTableData.shift();	
 			//resultTabelData = resultTableData.filter(row => row.some(e => e.includes('DEED')));
 			resultTableData = resultTableData.filter(row => row.some(e => e.includes('Parcel')));
+			
 			resultTableData = resultTableData.map(row => row.filter(e => e.includes("DEED") || e.includes("Parcel")));
-			resultTableData = resultTableData.filter(row => row[0] === 'DEED');
+			resultTableData = resultTableData.filter(row => row[0].includes("DEED"));
+			
 			resultTableData = resultTableData.map(row => row[row.length - 1]);
+			
 			resultTableData = resultTableData.map(row => {
-				var n = row.split(' ');
-				return n[n.length - 1];
+				var n = row.split(/<|>/);
+				return n[n.length - 3];
 			})
 			resultTableData = resultTableData.filter(row => !isNaN(row));
 			
@@ -297,8 +305,10 @@ async function run(){
 	const browser = await puppeteer.launch({headless: false, slowMo: 5});
 	const page = await browser.newPage();
 	const scrape = new Scraper();
-	let allHyperlinks = await scrape.getParcelIDHyperlinksForDate(page);
+	let allHyperlinks = await scrape.getParcelIDsForDateRange(page, '04162021', '04232021');
 	let processedInformation = await scrape.processHyperLinks(page, allHyperlinks, infoValidator);
+	await browser.close();
+	console.log("finished");
 }
 
 // run();

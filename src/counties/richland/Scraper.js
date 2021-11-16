@@ -130,45 +130,47 @@ let Scraper = function(){
 			// Return error if failed too many times.
 			if(visitAttemptCount === CONFIG.DEV_CONFIG.MAX_VISIT_ATTEMPTS){
 				console.log('Failed to reach ' + pageLink + '. Giving up.');
+				let remainingLinks = hyperlinks.slice(i);
 				return {
-					return_status: CONFIG.DEV_CONFIG.PAGE_ACCESS_ERROR_CODE,
-					scraped_information: []
+					code: CONFIG.DEV_CONFIG.PAGE_ACCESS_ERROR_CODE,
+					remaining_links: remainingLinks,
+					processed_information: processedInformation
 				};
 			}
 			
 
 			// Get the owner names. Sometimes appears as a link on this website.
-			let owner1Handle = await page.$('span#ctlBodyPane_ctl01_ctl01_lnkOwnerName1_lblSearch');
-			let owner1Link = await page.$('a#ctlBodyPane_ctl01_ctl01_lnkOwnerName1_lnkSearch');
+			let owner1Handle = await page.$('span[id*=OwnerName1]');
+			let owner1Link = await page.$('a[id*=OwnerName1]');
 			let prop;
+			let baseOwnerName;
 
 			// Get the owner name either from either the link or the text field.
 			// This is how you get the innerText property from a JSHandle
 			try{
 				if(owner1Handle) prop = await owner1Handle.getProperty('innerText');
 				else if(owner1Link) prop = await owner1Link.getProperty('innerText');
+				baseOwnerName = await prop.jsonValue();
 			}
 			catch(e){
 				console.log('Name not found, skipping.');
 				continue;
 			}
-			
-			let baseOwnerName = await prop.jsonValue();
 
 			
 			let ownerNames = infoParser.parseOwnerNames(baseOwnerName);
-
+			let taxInfo;
 
 			// Get the mailing tax name and address and manipulate them to get it as a string.
 			try{
 				let mailingHandle = await page.$('span#ctlBodyPane_ctl01_ctl01_lblMailing');
-				prop = await mailingHandle.getProperty('innerText');	
+				prop = await mailingHandle.getProperty('innerText');
+				taxInfo = await prop.jsonValue();
 			} catch (e){
 				console.log('Address not found, skipping.');
 				continue;
 			}
 			
-			let taxInfo = await prop.jsonValue();
 			taxInfo = taxInfo.split('\u000A');
 			taxInfo.shift();
 			let taxAddress = taxInfo[taxInfo.length-2] + ', ' + taxInfo[taxInfo.length-1];
@@ -217,6 +219,7 @@ let Scraper = function(){
 				transfer: transferAmount,
 				value: marketValue
 			};
+			// console.log(currentInfo);
 			
 			if(!infoValidator(currentInfo, processedInformation)){
 				console.log('Value Validation Failed');
@@ -298,6 +301,7 @@ let Scraper = function(){
 
 		// Search for the information section on the property page, to confirm that we have found 
 		// 		a property from the given search.
+		
 		await page.waitForSelector("#ctlBodyPane_ctl00_ctl01_gvwSalesResults", {timeout: CONFIG.DEV_CONFIG.PARCEL_TIMEOUT_MSEC});
 		await page.waitFor(200);
 
@@ -330,23 +334,32 @@ async function run(){
 	const browser = await puppeteer.launch({headless: false});//, slowMo: 5});
 	const page = await browser.newPage();
 	const scrape = new Scraper();
-	let allHyperlinks = await scrape.getParcelIDsForDateRange(page, '01/01/2020','01/05/2020');
-	// let allHyperlinks = [
-	// 		  '0270312308000',
-	// 		  '0178021615000',
-	// 		  '0512020618000',
-	// 		  '0386017317012',
-	// 		  '0372805301002',
-	// 		  '0250907212000',
-	// 		  '0460805518000',
-	// 		  '0460802104000',
-	// 		  '0386021417000',
-	// 		  '0302402102000',
-	// 		  '0289007418000',
-	// 		  '0261102306000'
-	// 		];
-
+	// let allHyperlinks = await scrape.getParcelIDsForDateRange(page, '01/01/2020','01/05/2020');
+	let allHyperlinks =[
+		  '0569218215000', '0553919412001', '0491202812002',
+		  '0491200603008', '0482713004000', '0460811308000',
+		  '0460811306000', '0460809711000', '0386015005001',
+		  '0270718515000', '0270204316021', '0512020314001',
+		  '0460810014000', '0444702912000', '0386024903000',
+		  '0386021515000', '0372812512000', '0270718014000',
+		  '0270213917000', '0270213901000', '0270205516000',
+		  '0250928809000', '0250915102000', '0178021001037',
+		  '0569219011007', '0569214302104', '0482714213000',
+		  '0460814410000', '0460802503000', '0386019818000',
+		  '0386014512000', '0289010216000', '0270714404000',
+		  '0270714103000', '0270705016000', '0270309606000',
+		  '0114012415001', '0553919303000', '0543815218000',
+		  '0512020517000', '0482710517000', '0482709706000',
+		  '0472603512000', '0386016912014', '0372805209000',
+		  '0250928710000', '0250924202000', '0250902815000',
+		  '0211706101000', '0114013106000', '0569218009000',
+		  '0533703209000', '0491202316001', '0482711818000',
+		  '0472610516000', '0460811412000', '0444701002000',
+		  '0386020217000', '0386019513000', '0372807904007',
+		  '0270710202000', '0270704015000', '0250915402000',
+		  '0181414512001', '0178021001050'
+		];
 	let processedInformation = await scrape.processHyperLinks(page, allHyperlinks, infoValidator);
 }
 
-//run();
+// run();

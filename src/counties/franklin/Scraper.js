@@ -5,11 +5,12 @@ const ErrorLogger = require("../../ErrorLogger.js");
 const ERROR_LOGGER = new ErrorLogger('franklin');
 const CONFIG = new ConfigReader('franklin');
 const targetAddress = CONFIG.DEV_CONFIG.FRANKLIN_TARGET_URL;
+const parcelSearchAddress = "https://property.franklincountyauditor.com/_web/search/commonsearch.aspx?mode=parid";
 
 let Scraper = function(){
 	this.getTableDataBySelector = async function(page, selector, value, html){
 		if(html){
-			return await page.$$eval("table["+selector+"*='"+value+"'] tr", rows => {
+			return await page.$$eval(selector, rows => {
 			  return Array.from(rows, row => {
 			    const columns = row.querySelectorAll('td');
 			    const datum = Array.from(columns, column => column.outerHTML);
@@ -18,7 +19,7 @@ let Scraper = function(){
 
 			});
 		} else {
-			return await page.$$eval("table["+selector+"*='"+value+"'] tr", rows => {
+			return await page.$$eval(selector, rows => {
 			  return Array.from(rows, row => {
 			    const columns = row.querySelectorAll('td');
 			    const datum = Array.from(columns, column => column.innerText);
@@ -70,19 +71,41 @@ let Scraper = function(){
 		for(let i = 0; i < hyperlinks.length; i++){
 			// if(i > 130) break;
 			let pageLink = hyperlinks[i];
+			
 			console.log(pageLink);
-
+			pageLink = pageLink.replace(/-/g,'');
 			let visitAttemptCount;
 			for(visitAttemptCount = 0; visitAttemptCount < CONFIG.DEV_CONFIG.MAX_VISIT_ATTEMPTS; visitAttemptCount++){
+			
 				try{
-					await page.goto(pageLink);
+					await page.goto(parcelSearchAddress);
+
+					await page.waitForSelector("input#inpParid");
+					await page.click('input#inpParid', {clickCount: 3});					
+					await page.type('input#inpParid', pageLink);
+					const searchButton = await page.$('button#btSearch');
+					await searchButton.click();
+					
+					await page.waitForSelector("table#Owner", {timeout: 15000});
+					await page.waitFor(200);
+					
+					const ownerTableData = await this.getTableDataBySelector(page, "table#Owner tr",false);
+					
+					if(ownerTableData.length < 1){
+						throw "Owner Table Not Found";
+					}
+					
 				}
 				catch(e){
-					console.log('Unable to visit ' + pageLink + '. Attempt #' + visitAttemptCount);
+					console.log(e);
+					console.log('Unable to visit ' + parcelSearchAddress + '. Attempt #' + visitAttemptCount);
 					continue;
 				}
+			
+				
 				break;	
 			}
+
 			if(visitAttemptCount === CONFIG.DEV_CONFIG.MAX_VISIT_ATTEMPTS){
 				console.log('Failed to reach ' + pageLink + '. Giving up.');
 				let remainingLinks = hyperlinks.slice(i);
@@ -92,19 +115,24 @@ let Scraper = function(){
 					processed_information: processedInformation
 				};
 			}
-			
-
 			// const parcelIDString = (await (await (await page.$('.DataletHeaderTopLeft')).getProperty('innerText')).jsonValue());
 			// const parcelID = parcelIDString.substring(parcelIDString.indexOf(':')+2);
 
-			const ownerTableData = await this.getTableDataBySelector(page, 'id','Owner',false);
+			let ownerTableData = await this.getTableDataBySelector(page, "#Owner tr",false);
+			ownerTableData = ownerTableData.filter(row => row.length == 2);
+			ownerTableData = ownerTableData.filter(row => row.every(el => el.trim().length > 0));
 			// console.log('Owner Table Data:');
 			// console.log(ownerTableData);
 			let ownerNames = await this.getInfoFromTableByRowHeader(ownerTableData, 'Owner', ',');
 			ownerNames = infoParser.parseOwnerNames(ownerNames);
 
 			// console.log(ownerNames);
-			let ownerAddress = await this.getInfoFromTableByRowHeader(ownerTableData, 'Owner Address',',');
+			let ownerAddress1 = await this.getInfoFromTableByRowHeader(ownerTableData, 'Owner Mailing /',',');
+			let ownerAddress2 = await this.getInfoFromTableByRowHeader(ownerTableData, 'Contact Address',',');
+			ownerAddress1 = ownerAddress1.replace(/,/g, '')
+			ownerAddress2 = ownerAddress2.replace(/,/g, '')
+			let ownerAddress = ownerAddress1 + ', ' + ownerAddress2;
+			// console.log('Owner Address: ' + ownerAddress);
 			ownerAddress = infoParser.parseAddress(ownerAddress);
 			// console.log('Street: ' + ownerAddress.street);
 			if(ownerAddress.street === ''){
@@ -116,11 +144,11 @@ let Scraper = function(){
 				};
 			}
 
-			const transferTableData = await this.getTableDataBySelector(page, 'id','Transfer',false);
+			const transferTableData = await this.getTableDataBySelector(page, "table[id*='Transfer'] tr",false);
 			let transferAmount = await this.getInfoFromTableByRowHeader(transferTableData,'Transfer Price','');
 			transferAmount = parseInt(transferAmount.replace(/[,\$]/g, ''));
 
-			const marketTableData = await this.getTableDataBySelector(page, 'id','2020 Auditor',false);
+			const marketTableData = await this.getTableDataBySelector(page, "table[id*='2020 Auditor'] tr",false);
 			let marketValue = await this.getInfoFromTableByRowHeader(marketTableData, 'Total','');
 			marketValue = parseInt(marketValue.replace(/,/g, ''));
 
@@ -133,13 +161,12 @@ let Scraper = function(){
 				transfer: transferAmount,
 				value: marketValue
 			};
-
 			if(!infoValidator(currentInfo, processedInformation)){
 				console.log('Value Validation Failed');
 				continue;
 			}
 
-			let sideMenu = await page.$$("div#sidemenu > li.unsel > a");
+			let sideMenu = await page.$$("div#sidemenu li.unsel > a");
 			let transferTag;
 			for(let i = 0; i < sideMenu.length; i++){
 				handle = sideMenu[i];
@@ -147,7 +174,7 @@ let Scraper = function(){
 				let propJSON = await prop.jsonValue();
 				if(propJSON === 'Transfers') transferTag = handle;
 			}
-			
+
 			for(visitAttemptCount = 0; visitAttemptCount < CONFIG.DEV_CONFIG.MAX_VISIT_ATTEMPTS; visitAttemptCount++){
 				try{
 					await transferTag.click();
@@ -170,10 +197,11 @@ let Scraper = function(){
 			}
 			
 
-			const conveyanceTableData = await this.getTableDataBySelector(page, 'id', 'Sales Summary', false);
+			const conveyanceTableData = await this.getTableDataBySelector(page, "table[id*='Sales Summary'] tr", false);
 			const conveyanceCode = await this.getInfoFromTableByColumnHeader(conveyanceTableData, 'Inst Type', 0);
 
 			currentInfo.conveyance_code = conveyanceCode;
+
 			if(!infoValidator(currentInfo, processedInformation)){
 				console.log('ConveyanceCode Validation Failed')
 				continue;
@@ -182,13 +210,6 @@ let Scraper = function(){
 
 			console.log(processedInformation[processedInformation.length - 1]);
 
-			// console.log('Parcel ID: ' + parcelID);
-			// console.log('Owner: ' + ownerNames);
-			// console.log('Owner Address: ' + ownerAddress);
-			// console.log('Transfer Price: ' + transferAmount);
-			// console.log('Market Value: ' + marketValue);
-			// console.log('\n')
-			
 		}
 		return processedInformation;
 	}
@@ -205,25 +226,31 @@ let Scraper = function(){
 
 		while(true){
 	  	
-			let resultTableData = await this.getTableDataBySelector(page, 'class', 'datatable',true);
+			let resultTableData = await this.getTableDataBySelector(page, ".datatable tr",false);
 			resultTableData.shift();
 			resultTableData = resultTableData.filter(row => row.length > 0);
 
 			// console.log(resultTableData);
+			
 			// TODO get parcelID column index from table header or something
 			const parcelIDColIndex = 1;
-			const hyperlinks = [];
+			let hyperlinks = [];
 			for(let i = 0; i < resultTableData.length; i++){
+				
+				let pIDCol = resultTableData[i][parcelIDColIndex];
 				try{
-					let html = resultTableData[i][parcelIDColIndex];
-					let href = html.match(/href=".*"/)[0];
-					let link = href.match(/".*"/)[0].replace(/"/g,'');
-					hyperlinks.push(link);	
-				} catch(e){
+					let els = pIDCol.split('\n');
+				
+					if(els.length > 0 && els[0].match(/[0-9]*-[0-9]*-[0-9]*/)){
+						hyperlinks.push(els[0]);	
+					}
+				} catch(e) {
 					continue;
 				}
 				
+				
 			}
+			hyperlinks = hyperlinks.filter(el => el.length > 0);
 		
 			console.log('Page num '+pageNum);
 			console.log(hyperlinks);
@@ -260,21 +287,20 @@ async function run(){
 	const browser = await puppeteer.launch({headless: false});//, slowMo: 5});
 	const page = await browser.newPage();
 	const scrape = new Scraper();
-	let allHyperlinks = await scrape.getParcelIDHyperlinksForDate(page, '03/01/2021');
-	// let allHyperlinks = [
-	// 		  '0270312308000',
-	// 		  '0178021615000',
-	// 		  '0512020618000',
-	// 		  '0386017317012',
-	// 		  '0372805301002',
-	// 		  '0250907212000',
-	// 		  '0460805518000',
-	// 		  '0460802104000',
-	// 		  '0386021417000',
-	// 		  '0302402102000',
-	// 		  '0289007418000',
-	// 		  '0261102306000'
-	// 		];
+	// let allHyperlinks = await scrape.getParcelIDHyperlinksForDate(page, '03/01/2021');
+	let allHyperlinks = [
+	  '273-012340-00', '273-012210-00',
+	  '273-005928-00', '010-102249-00',
+	  '010-268516-00', '010-103410-00',
+	  '010-113956-00', '100-001043-00',
+	  '010-277111-00', '010-079854-00',
+	  '010-000826-00', '010-113982-00',
+	  '010-113983-00', '010-188443-00',
+	  '170-001982-00', '150-002185-00',
+	  '230-000500-00', '230-000070-00',
+	  '010-064426-00', '010-069023-00'
+	];
+
 
 	let processedInformation = await scrape.processHyperLinks(page, allHyperlinks, infoValidator);
 }

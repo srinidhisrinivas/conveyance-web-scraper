@@ -26,8 +26,15 @@ async function runCycle(start, end, remainingLinks, remainingDates, finalpath, h
 	//let scraper = new Scraper();
 	let scraper = new Scraper();
 	let targetDir = CONFIG.USER_CONFIG.TARGET_DIR;
-	const browser = await puppeteer.launch({headless: headless});
+	const browser = await puppeteer.launch({args: [ '--proxy-server=x.botproxy.net:8080' ], headless: headless});
 	const page = await browser.newPage();
+	
+
+	await page.authenticate({
+	  	username: CONFIG.DEV_CONFIG.BOT_PROXY_USER,
+	  	password: CONFIG.DEV_CONFIG.BOT_PROXY_PASS
+	  })
+
 	let processedInformation = [];
 
 	if(remainingLinks !== undefined){
