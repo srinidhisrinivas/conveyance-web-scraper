@@ -1,3 +1,11 @@
+Sat May 29 2021 21:47:14 GMT+0200 (Central European Summer Time)
+
+TimeoutError: waiting for selector "table.cottPagedGridView tr" failed: timeout 30000ms exceeded
+
+Sat May 29 2021 21:32:14 GMT+0200 (Central European Summer Time)
+
+Error: net::ERR_CONNECTION_TIMED_OUT at https://cotthosting.com/ohdelaware/User/Login.aspx
+
 Mon Aug 24 2020 15:03:47 GMT-0400 (Eastern Daylight Time)
 
 Error: Navigation failed because browser has disconnected!

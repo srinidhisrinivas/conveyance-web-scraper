@@ -88,10 +88,10 @@ let Scraper = function(){
 					await page.waitForSelector('table.results a', {timeout: CONFIG.DEV_CONFIG.PARCEL_TIMEOUT_MSEC});
 					await page.waitFor(200);
 
-					await page.click("table.results a");
+					await page.click("#results td a");
 					await page.waitFor(200);
 
-					await page.waitForSelector("table.table", {timeout: CONFIG.DEV_CONFIG.PARCEL_TIMEOUT_MSEC});
+					await page.waitForSelector(".col-md-8 table.table", {timeout: CONFIG.DEV_CONFIG.PARCEL_TIMEOUT_MSEC});
 					await page.waitFor(200);
 					
 					const ownerTableData = await this.getTableDataBySelector(page, "table.table tr",false);
@@ -119,25 +119,32 @@ let Scraper = function(){
 				};
 			}
 			
-
+			// await page.waitForSelector("div.col-md-8 table.table")
+			// console.log('found selector')
 			let ownerTableData = await this.getTableDataBySelector(page, "table.table tr",false);
-			let ownerData = ownerTableData.slice(1, 4);
-			ownerData = ownerData.filter(row => row.length > 1);
-			ownerData = ownerData.map(row => row[1]);
-
-			let ownerNames = ownerData.shift();
-			ownerNames = infoParser.parseOwnerNames(ownerNames);
-			// console.log(ownerNames);
-
-			for(let i = 0; i < ownerData.length; i++){
-				ownerData[i] = ownerData[i].replace(/,/g,'');
-			}
-			// console.log(ownerData);
-			let ownerAddress = ownerData.join(', ');
-			ownerAddress = infoParser.parseAddress(ownerAddress);
-			// console.log(ownerAddress);
-
 			// console.log(ownerTableData);
+			
+			let ownerNameRow = ownerTableData.filter(row => row.includes("Owner Name"))[0];
+			let ownerNames = ownerNameRow[1];
+			ownerNames = infoParser.parseOwnerNames(ownerNames);
+
+			let ownerAddressRow = ownerTableData.filter(row => row.some(el => el.includes("Mailing Address")))[0];
+			let ownerAddress = ownerAddressRow[1].split('\n');
+			ownerAddress.shift();
+			// Get rid of 'USA' at end, if present
+			addressLastLine = ownerAddress[ownerAddress.length-1]
+			addressLastLine = addressLastLine.split(', ').join(' ')
+			lastLineEls = addressLastLine.split(' ');
+			if(isNaN(lastLineEls[lastLineEls.length-1])){
+				lastLineEls.pop();
+			}
+			addressLastLine = lastLineEls.join(' ');
+			ownerAddress[ownerAddress.length-1] = addressLastLine;
+			ownerAddress = ownerAddress.join(", ")
+			//ownerData.join(', ');
+			
+			ownerAddress = infoParser.parseAddress(ownerAddress);
+
 			let marketValueData = ownerTableData.filter(row => row.includes('Total Value'))[0];
 			let marketValue;
 			if(marketValueData) {
@@ -147,8 +154,6 @@ let Scraper = function(){
 				console.log("Market Value not found, skipping.");
 				continue;
 			}
-			
-			// console.log(marketValue);
 			
 			for(visitAttemptCount = 0; visitAttemptCount < CONFIG.DEV_CONFIG.MAX_VISIT_ATTEMPTS; visitAttemptCount++){
 				try{
@@ -180,9 +185,23 @@ let Scraper = function(){
 				
 			} 
 			let transferTableData = await this.getTableDataBySelector(page, "table tr", false);
+			// console.log(transferTableData)
 			transferTableData.shift();
 			
 			let dates = transferTableData.map(row => new Date(row[0].split('\n')[0]));
+			
+			// Exclude Invalid Dates ("Unknown" on website)
+			let excludeDatesIdx = [];
+			for(let i = 0; i < dates.length; i++){
+				if(!(Object.prototype.toString.call(dates[i]) === '[object Date]' && isFinite(dates[i]))){
+					excludeDatesIdx.push(i)
+				}
+			}
+			for(let i = 0; i < excludeDatesIdx.length; i++){
+				dates.splice(excludeDatesIdx[i],1);
+				transferTableData.splice(excludeDatesIdx[i],1);
+			}
+
 			let maxDateIdx = 0;
 			for(let i = 1; i < dates.length; i++){
 				let currDate = dates[i];
@@ -190,7 +209,7 @@ let Scraper = function(){
 					maxDateIdx = i;
 				}
 			}
-
+			
 			let latestTransferData = transferTableData[maxDateIdx];
 			let transferAmount = '';
 			if(latestTransferData !== undefined){
@@ -212,7 +231,7 @@ let Scraper = function(){
 				transfer: transferAmount,
 				value: marketValue
 			};
-
+			// console.log(currentInfo)
 			if(!infoValidator(currentInfo, processedInformation)){
 				console.log('Value Validation Failed');
 				continue;
@@ -287,18 +306,20 @@ function infoValidator(info, processedInformation){
 	
 }	
 async function run(){
-	const browser = await puppeteer.launch({headless: false, slowMo: 5});
+	const browser = await puppeteer.launch({headless: false});
 	const page = await browser.newPage();
 	const scrape = new Scraper();
-	let allHyperlinks = await scrape.getParcelIDsForDateRange(page, '01/01/2020','01/05/2020');
-// 	let allHyperlinks = [
-//   '10012145', '105676',
-//   '113194',   '1308489',
-//   '1400625',  '3603335',
-//   '3605658',  '616491',
-//   '616493'
-// ];
-
+	let allHyperlinks = await scrape.getParcelIDsForDateRange(page, '11/01/2021','11/05/2021');
+ 	/*
+ 	let allHyperlinks = [
+	   '024-04B-21-019', '012-21A-07-177', '019-13D-31-002', '026-06C-13-102',
+	  '033-12C-33-008', '031-11B-21-154', '038-17D-12-007', '013-14A-38-019',
+	  '001-02D-30-026', '020-10D-28-005', '030-11A-02-099', '038-17A-16-067',
+	  '040-20D-11-049', '003-18B-32-323', '041-15A-20-020', '016-03B-06-080',
+	  '040-20B-14-036', '040-20A-21-047', '003-18A-04-197', '028-19B-14-074',
+	  '040-20D-08-113'
+	 ];
+	*/
 	let processedInformation = await scrape.processHyperLinks(page, allHyperlinks, infoValidator);
 }
 

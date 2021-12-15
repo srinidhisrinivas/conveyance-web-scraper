@@ -148,7 +148,7 @@ let Scraper = function(){
 			let transferAmount = await this.getInfoFromTableByRowHeader(transferTableData,'Transfer Price','');
 			transferAmount = parseInt(transferAmount.replace(/[,\$]/g, ''));
 
-			const marketTableData = await this.getTableDataBySelector(page, "table[id*='2020 Auditor'] tr",false);
+			const marketTableData = await this.getTableDataBySelector(page, "table[id*='"+CONFIG.USER_CONFIG.VALUE_YEAR+" Auditor'] tr",false);
 			let marketValue = await this.getInfoFromTableByRowHeader(marketTableData, 'Total','');
 			marketValue = parseInt(marketValue.replace(/,/g, ''));
 
@@ -161,6 +161,8 @@ let Scraper = function(){
 				transfer: transferAmount,
 				value: marketValue
 			};
+
+			//console.log(currentInfo);
 			if(!infoValidator(currentInfo, processedInformation)){
 				console.log('Value Validation Failed');
 				continue;
@@ -201,6 +203,7 @@ let Scraper = function(){
 			const conveyanceCode = await this.getInfoFromTableByColumnHeader(conveyanceTableData, 'Inst Type', 0);
 
 			currentInfo.conveyance_code = conveyanceCode;
+
 
 			if(!infoValidator(currentInfo, processedInformation)){
 				console.log('ConveyanceCode Validation Failed')
@@ -287,7 +290,8 @@ async function run(){
 	const browser = await puppeteer.launch({headless: false});//, slowMo: 5});
 	const page = await browser.newPage();
 	const scrape = new Scraper();
-	// let allHyperlinks = await scrape.getParcelIDHyperlinksForDate(page, '03/01/2021');
+	//let allHyperlinks = await scrape.getParcelIDHyperlinksForDate(page, '11/15/2021');
+	
 	let allHyperlinks = [
 	  '273-012340-00', '273-012210-00',
 	  '273-005928-00', '010-102249-00',
@@ -300,7 +304,7 @@ async function run(){
 	  '230-000500-00', '230-000070-00',
 	  '010-064426-00', '010-069023-00'
 	];
-
+	
 
 	let processedInformation = await scrape.processHyperLinks(page, allHyperlinks, infoValidator);
 }

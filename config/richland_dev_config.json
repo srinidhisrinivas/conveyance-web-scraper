@@ -18,6 +18,8 @@
 	"ACK_TIMEOUT_MSEC" : 3000,
 	"PARCEL_TIMEOUT_MSEC" : 10000,
 	"SEARCH_TIMEOUT_MSEC" : 15000,
-	"ERROR_LOG_FILE" : "logs/richland_error_log.txt"
+	"ERROR_LOG_FILE" : "logs/richland_error_log.txt",
+	"BOT_PROXY_USER" : "pxu27084-1",
+	"BOT_PROXY_PASS" : "o2ckbbHHE9MhpovDyU3G"
 
 }
